@@ -1,0 +1,76 @@
+# Requirements — CodeAlpha Social Media Platform
+
+## 1. Functional Requirements
+
+### 1.1 Authentication
+- A visitor can register with username, email, password, and display name.
+- A registered user can log in with email + password and receive an auth token.
+- A logged-in user can log out (token is discarded client-side).
+- Passwords are hashed (never stored in plain text).
+
+### 1.2 Profiles
+- Every user has a profile: display name, username, bio, avatar, join date.
+- A user can view their own profile and edit display name, bio, and avatar.
+- A user can view another user's public profile, including their posts and follower/following counts.
+
+### 1.3 Posts
+- A logged-in user can create a text post (optionally with one image).
+- Posts show author, content, timestamp, like count, and comment count.
+- A user can delete their own posts.
+- The home feed shows posts from users the current user follows, newest first.
+- A user's profile page shows all of that user's posts.
+
+### 1.4 Comments
+- A logged-in user can comment on any post.
+- Comments display under the post with author and timestamp.
+- A user can delete their own comments.
+
+### 1.5 Likes
+- A logged-in user can like or unlike a post (toggle).
+- The post shows the current like count and whether the current user has liked it.
+
+### 1.6 Follow System
+- A logged-in user can follow or unfollow another user (toggle).
+- A user cannot follow themselves.
+- Profile pages show follower count and following count.
+
+## 2. Non-Functional Requirements
+
+- **Security:** all write endpoints require a valid auth token; SQL access goes through PDO prepared statements only (no string-concatenated queries).
+- **Validation:** all API inputs are validated server-side (required fields, length limits, email format) regardless of frontend validation.
+- **Responsiveness:** the frontend is usable on both desktop and mobile widths.
+- **Performance:** the feed query is paginated rather than loading all posts at once.
+- **Error handling:** API errors return a JSON `{ "error": "message" }` body with an appropriate HTTP status code (400/401/403/404/500).
+
+## 3. Out of Scope (for the internship submission)
+
+- Direct messaging
+- Push notifications
+- Real-time feed updates (nice-to-have if time allows, not required)
+- Email verification / password reset flow
+
+## 4. User Roles
+
+| Role   | Capabilities                                              |
+|--------|-------------------------------------------------------------|
+| Guest  | View public profiles and posts (read-only), register, log in |
+| User   | All guest capabilities + post, comment, like, follow, edit own profile |
+
+## 5. Core API Endpoints (summary)
+
+| Method | Endpoint                     | Auth required | Purpose               |
+|--------|-------------------------------|:---:|------------------------|
+| POST   | /api/auth/register.php        | No  | Create account          |
+| POST   | /api/auth/login.php           | No  | Log in, get token       |
+| GET    | /api/users/profile.php?id=    | No  | View a profile          |
+| PUT    | /api/users/update_profile.php | Yes | Edit own profile        |
+| POST   | /api/posts/create.php         | Yes | Create a post           |
+| GET    | /api/posts/list.php           | No  | Feed / profile posts    |
+| DELETE | /api/posts/delete.php         | Yes | Delete own post         |
+| POST   | /api/comments/create.php      | Yes | Add a comment           |
+| GET    | /api/comments/list.php        | No  | List comments on a post |
+| POST   | /api/likes/toggle.php         | Yes | Like / unlike a post    |
+| POST   | /api/follow/toggle.php        | Yes | Follow / unfollow a user|
+| GET    | /api/follow/followers.php     | No  | List followers/following|
+
+Full request/response shapes to be finalized in `design.md`.

@@ -1,0 +1,36 @@
+<svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0A1A33"/>
+      <stop offset="55%" stop-color="#123A52"/>
+      <stop offset="100%" stop-color="#1F6E6A"/>
+    </linearGradient>
+    <linearGradient id="gradA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="gradB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22C1A4"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1000" height="700" fill="url(#bgGrad)"/>
+
+  <g transform="translate(300,150) rotate(-6 200 150)">
+    <path d="M65,92 C102,175 133,222 160,234 C186,220 208,158 228,100"
+          fill="none" stroke="url(#gradA)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M175,84 C204,164 230,216 252,229 C276,216 304,152 335,94"
+          fill="none" stroke="url(#gradB)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="65" cy="92" r="11" fill="#2DD4BF"/>
+    <circle cx="228" cy="100" r="11" fill="#22C1A4"/>
+    <circle cx="175" cy="84" r="11" fill="#22C1A4"/>
+    <circle cx="335" cy="94" r="11" fill="#2563EB"/>
+  </g>
+
+  <text x="500" y="500" text-anchor="middle" font-family="Poppins, Arial, sans-serif"
+        font-weight="700" font-size="72" letter-spacing="1" fill="#FFFFFF">WAVELINK</text>
+
+  <text x="500" y="545" text-anchor="middle" font-family="Poppins, Arial, sans-serif"
+        font-weight="500" font-size="24" letter-spacing="4" fill="#9FB3C8">CONNECT. SHARE. DISCOVER.</text>
+</svg>
