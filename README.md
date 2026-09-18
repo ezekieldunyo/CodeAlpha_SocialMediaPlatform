@@ -42,13 +42,23 @@ CodeAlpha_SocialMediaPlatform/
 └── design.md
 ```
 
-## Local Setup (once we build it)
+## Local Setup
 
-1. Import `backend/database/schema.sql` into MySQL.
-2. Update `backend/config/database.php` with your DB credentials.
-3. Serve the `backend/` folder with PHP's built-in server or XAMPP/WAMP.
-4. `cd frontend && npm install && npm run dev`
-5. Update the API base URL in the frontend to match your PHP server's address.
+1. Import `backend/database/schema.sql` into MySQL: `mysql -u root -p < backend/database/schema.sql`
+2. Update `backend/config/database.php` with your DB credentials and set a real `JWT_SECRET`.
+3. Serve the `backend/` folder on port 8000 — `php -S localhost:8000 -t backend` — or point XAMPP/WAMP at it.
+   PHP needs the `pdo_mysql` and `mbstring` extensions enabled (both ship with XAMPP).
+4. `cd frontend && npm install && npm run dev` → http://localhost:5173
+
+The Vite dev server proxies `/api` and `/uploads` to `http://localhost:8000`, so no API base URL
+configuration is needed in development. To point the frontend at a different backend, set
+`VITE_API_BASE` (e.g. `VITE_API_BASE=https://api.example.com/api`).
+
+## API
+
+All endpoints live under `backend/api/` and return JSON; errors come back as `{ "error": "message" }`
+with a 400/401/403/404/405/500 status. Write endpoints require an `Authorization: Bearer <token>`
+header. See `requirement.md` §5 for the full list.
 
 ## Internship Submission Checklist
 
