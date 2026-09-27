@@ -6,7 +6,7 @@ export default function ComingSoon({ title }) {
       </header>
       <div className="empty">
         <strong>{title} are on the way.</strong>
-        <p>This part of Wavelink isn't built yet.</p>
+        <p>This part of wavelink isn't built yet.</p>
       </div>
     </>
   );

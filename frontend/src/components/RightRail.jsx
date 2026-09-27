@@ -25,11 +25,11 @@ export default function RightRail() {
   return (
     <aside className="right-rail">
       <section className="rail-card">
-        <h2 className="rail-title">Who to follow</h2>
-        {error && <p className="form-error rail-pad">{error}</p>}
-        {!users && !error && <p className="muted small rail-pad">Loading…</p>}
+        <h3 className="rail-title">Who to follow</h3>
+        {error && <p className="form-error rail-note">{error}</p>}
+        {!users && !error && <p className="muted small rail-note">Loading…</p>}
         {users?.length === 0 && (
-          <p className="muted small rail-pad">You're following everyone here. Nice.</p>
+          <p className="muted small rail-note">You're following everyone here. Nice.</p>
         )}
         {users?.map((u) => (
           <UserRow key={u.id} user={u} onFollowChange={setFollowing} compact />
@@ -40,7 +40,7 @@ export default function RightRail() {
       </section>
 
       <footer className="rail-footer">
-        Wavelink · CodeAlpha Full Stack Internship · {new Date().getFullYear()}
+        wavelink · CodeAlpha Full Stack Internship · {new Date().getFullYear()}
       </footer>
     </aside>
   );

@@ -5,6 +5,9 @@ import usePostList from '../hooks/usePostList.js';
 import Composer, { POST_CREATED_EVENT } from '../components/Composer.jsx';
 import PostList from '../components/PostList.jsx';
 
+// The mockup's feed opens straight onto sticky tabs. Its "For you" / topic
+// tabs would need a global or tagged feed the API doesn't have, so the tabs
+// map to the two feeds posts/list.php supports.
 const TABS = [
   { id: 'home', label: 'Following' },
   { id: 'mine', label: 'Your posts' },
@@ -26,7 +29,7 @@ export default function Feed() {
   return (
     <>
       <header className="page-header sticky">
-        <h1>Home</h1>
+        <h1 className="sr-only">Home</h1>
         <div className="tabs" role="tablist">
           {TABS.map((t) => (
             <button

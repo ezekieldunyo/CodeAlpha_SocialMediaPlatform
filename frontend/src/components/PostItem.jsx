@@ -11,6 +11,8 @@ export default function PostItem({ post, onUpdate, onRemove }) {
   const { user } = useAuth();
   const [showThread, setShowThread] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
+  // Set only by a click, so already-liked posts don't animate on load.
+  const [pop, setPop] = useState(false);
   const [error, setError] = useState('');
   const { author } = post;
   const isOwn = author.id === user.id;
@@ -21,6 +23,7 @@ export default function PostItem({ post, onUpdate, onRemove }) {
     setLikeBusy(true);
     setError('');
     const before = { liked_by_viewer: post.liked_by_viewer, like_count: post.like_count };
+    setPop(!before.liked_by_viewer);
     onUpdate(post.id, {
       liked_by_viewer: !before.liked_by_viewer,
       like_count: before.like_count + (before.liked_by_viewer ? -1 : 1),
@@ -49,7 +52,7 @@ export default function PostItem({ post, onUpdate, onRemove }) {
   return (
     <article className="post">
       <Link to={`/u/${author.username}`} className="post-avatar">
-        <Avatar user={author} />
+        <Avatar user={author} size={40} />
       </Link>
       <div className="post-body">
         <div className="post-meta">
@@ -75,8 +78,9 @@ export default function PostItem({ post, onUpdate, onRemove }) {
             <span>{post.comment_count || ''}</span>
           </button>
           <button
-            className={`action like ${post.liked_by_viewer ? 'is-liked' : ''}`}
+            className={`action like ${post.liked_by_viewer ? 'is-liked' : ''} ${pop ? 'pop' : ''}`}
             onClick={toggleLike}
+            onAnimationEnd={() => setPop(false)}
             aria-pressed={post.liked_by_viewer}
             aria-label={`${post.liked_by_viewer ? 'Unlike' : 'Like'} (${post.like_count})`}
           >

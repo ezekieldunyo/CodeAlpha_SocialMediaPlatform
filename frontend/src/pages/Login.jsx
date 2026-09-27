@@ -25,7 +25,7 @@ export default function Login() {
 
   return (
     <AuthShell
-      title="Log in to Wavelink"
+      title="Log in to wavelink"
       footer={<>New here? <Link to="/register">Create an account</Link></>}
     >
       <form className="form" onSubmit={submit}>

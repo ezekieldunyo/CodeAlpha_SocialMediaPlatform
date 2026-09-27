@@ -32,7 +32,7 @@ export default function Explore() {
       {users?.length === 0 && (
         <div className="empty">
           <strong>No one new to suggest.</strong>
-          <p>You're already following everyone on Wavelink.</p>
+          <p>You're already following everyone on wavelink.</p>
         </div>
       )}
       <div className="user-list">

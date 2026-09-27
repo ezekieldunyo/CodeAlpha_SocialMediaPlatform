@@ -62,8 +62,8 @@ export default function Composer({ autoFocus = false, onPosted }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit(e);
           }}
-          placeholder="What's happening?"
-          rows={2}
+          placeholder="What's flowing?"
+          rows={1}
           autoFocus={autoFocus}
           aria-label="Post content"
         />
