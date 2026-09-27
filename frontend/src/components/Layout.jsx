@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Avatar from './Avatar.jsx';
 import Composer from './Composer.jsx';
@@ -23,8 +23,29 @@ function NavIcon({ icon: Icon, isActive, size = 20 }) {
   return <Icon size={size} stroke={isActive ? 'url(#wl-grad)' : 'currentColor'} strokeWidth={isActive ? 2.2 : 1.8} />;
 }
 
+function Brand({ size = 26 }) {
+  return (
+    <Link to="/" className="brand" aria-label="wavelink home">
+      <LogoMark size={size} />
+      <span className="wordmark">wavelink</span>
+    </Link>
+  );
+}
+
+// An explicit "Log out" goes to the login page. (A token that expires mid-session
+// only clears the session, so public pages stay readable.)
+function useLogOut() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  return () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+}
+
 function MoreMenu() {
-  const { user, logout } = useAuth();
+  const logOut = useLogOut();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -46,7 +67,7 @@ function MoreMenu() {
           <Link to={`/u/${user.username}`} className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
             <UserIcon size={18} /> View profile
           </Link>
-          <button className="menu-item" role="menuitem" onClick={logout}>
+          <button className="menu-item" role="menuitem" onClick={logOut}>
             <LogoutIcon size={18} /> Log out @{user.username}
           </button>
         </div>
@@ -59,6 +80,15 @@ function MoreMenu() {
 // of scope (requirement.md §3) and link to placeholder pages.
 function LeftNav({ onCompose }) {
   const { user } = useAuth();
+
+  if (!user) {
+    return (
+      <nav className="left-nav" aria-label="Main">
+        <Brand />
+      </nav>
+    );
+  }
+
   const items = [
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
     { to: '/explore', label: 'Explore', icon: ExploreIcon },
@@ -69,10 +99,7 @@ function LeftNav({ onCompose }) {
 
   return (
     <nav className="left-nav" aria-label="Main">
-      <Link to="/" className="brand" aria-label="wavelink home">
-        <LogoMark size={26} />
-        <span className="wordmark">wavelink</span>
-      </Link>
+      <Brand />
 
       {items.map(({ to, label, icon, end }) => (
         <NavLink key={label} to={to} end={end} className="nav-item">
@@ -109,19 +136,19 @@ function MobileHeader() {
   const { user } = useAuth();
   return (
     <header className="mobile-header">
-      <Link to="/" className="brand" aria-label="wavelink home">
-        <LogoMark size={22} />
-        <span className="wordmark">wavelink</span>
-      </Link>
-      <Link to={`/u/${user.username}`} aria-label="Your profile">
-        <Avatar user={user} size={32} />
-      </Link>
+      <Brand size={22} />
+      {user && (
+        <Link to={`/u/${user.username}`} aria-label="Your profile">
+          <Avatar user={user} size={32} />
+        </Link>
+      )}
     </header>
   );
 }
 
 function BottomBar() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const logOut = useLogOut();
   const items = [
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
     { to: '/explore', label: 'Explore', icon: ExploreIcon },
@@ -140,7 +167,7 @@ function BottomBar() {
           )}
         </NavLink>
       ))}
-      <button className="bottom-item" onClick={logout}>
+      <button className="bottom-item" onClick={logOut}>
         <LogoutIcon size={22} />
         Log out
       </button>
@@ -148,7 +175,26 @@ function BottomBar() {
   );
 }
 
+// Shown to logged-out visitors on every screen size, in place of the member
+// chrome. Carries the current page so login/sign-up can return here.
+function GuestBanner() {
+  const { pathname } = useLocation();
+  return (
+    <aside className="guest-banner" aria-label="Join wavelink">
+      <div className="guest-banner-text">
+        <strong>Don't miss what's flowing</strong>
+        <span>Join wavelink to post, like, comment and follow.</span>
+      </div>
+      <div className="guest-banner-actions">
+        <Link to="/login" state={{ from: pathname }} className="btn btn-outline-light">Log in</Link>
+        <Link to="/register" state={{ from: pathname }} className="btn btn-primary">Sign up</Link>
+      </div>
+    </aside>
+  );
+}
+
 export default function Layout() {
+  const { user } = useAuth();
   const [composing, setComposing] = useState(false);
   const { pathname } = useLocation();
 
@@ -159,7 +205,7 @@ export default function Layout() {
   }, [pathname]);
 
   return (
-    <div className="shell">
+    <div className={`shell ${user ? '' : 'is-guest'}`}>
       <GradientDefs />
       <LeftNav onCompose={() => setComposing(true)} />
 
@@ -170,10 +216,16 @@ export default function Layout() {
 
       <RightRail />
 
-      <button className="fab btn-primary" onClick={() => setComposing(true)} aria-label="New post">
-        <FeatherIcon size={24} />
-      </button>
-      <BottomBar />
+      {user ? (
+        <>
+          <button className="fab btn-primary" onClick={() => setComposing(true)} aria-label="New post">
+            <FeatherIcon size={24} />
+          </button>
+          <BottomBar />
+        </>
+      ) : (
+        <GuestBanner />
+      )}
 
       {composing && (
         <Modal title="New post" onClose={() => setComposing(false)}>

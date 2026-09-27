@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import useRequireAuth from '../hooks/useRequireAuth.js';
 import { timeAgo } from '../utils/time.js';
 import Avatar from './Avatar.jsx';
 import { TrashIcon } from './Icons.jsx';
 
 export default function CommentThread({ postId, onCountChange }) {
   const { user } = useAuth();
+  const requireAuth = useRequireAuth();
   const [comments, setComments] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [draft, setDraft] = useState('');
@@ -68,7 +70,7 @@ export default function CommentThread({ postId, onCountChange }) {
             <div className="post-meta">
               <Link to={`/u/${c.author.username}`} className="name">{c.author.display_name}</Link>
               <span className="muted">@{c.author.username} · {timeAgo(c.created_at)}</span>
-              {c.author.id === user.id && (
+              {c.author.id === user?.id && (
                 <button className="icon-btn danger push-right" onClick={() => remove(c.id)} aria-label="Delete comment">
                   <TrashIcon size={16} />
                 </button>
@@ -79,20 +81,26 @@ export default function CommentThread({ postId, onCountChange }) {
         </div>
       ))}
 
-      <form className="comment-form" onSubmit={submit}>
-        <Avatar user={user} size={32} />
-        <input
-          className="input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a reply…"
-          maxLength={500}
-          aria-label="Write a reply"
-        />
-        <button className="btn btn-primary btn-sm" disabled={!draft.trim() || busy}>
-          Reply
+      {user ? (
+        <form className="comment-form" onSubmit={submit}>
+          <Avatar user={user} size={32} />
+          <input
+            className="input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Write a reply…"
+            maxLength={500}
+            aria-label="Write a reply"
+          />
+          <button className="btn btn-primary btn-sm" disabled={!draft.trim() || busy}>
+            Reply
+          </button>
+        </form>
+      ) : (
+        <button className="btn btn-outline btn-sm" onClick={() => requireAuth('Log in to reply to posts.')}>
+          Log in to reply
         </button>
-      </form>
+      )}
       {error && <p className="form-error">{error}</p>}
     </div>
   );

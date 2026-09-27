@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
@@ -8,14 +8,19 @@ import Explore from './pages/Explore.jsx';
 import Profile from './pages/Profile.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 
+// Pages that only make sense for a signed-in user (the home feed is "people
+// you follow"). Guests are sent to log in and brought back afterwards.
 function RequireAuth({ children }) {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
+  const location = useLocation();
+  return user ? children : <Navigate to="/login" replace state={{ from: location.pathname }} />;
 }
 
+// Login/Register: once signed in, return to wherever the guest came from.
 function GuestOnly({ children }) {
   const { user } = useAuth();
-  return user ? <Navigate to="/" replace /> : children;
+  const location = useLocation();
+  return user ? <Navigate to={location.state?.from || '/'} replace /> : children;
 }
 
 export default function App() {
@@ -24,12 +29,14 @@ export default function App() {
       <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
       <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
 
-      <Route element={<RequireAuth><Layout /></RequireAuth>}>
-        <Route index element={<Feed />} />
-        <Route path="explore" element={<Explore />} />
+      <Route element={<Layout />}>
+        {/* Public, read-only for guests (requirement.md §4). */}
         <Route path="u/:username" element={<Profile />} />
-        <Route path="notifications" element={<ComingSoon title="Notifications" />} />
-        <Route path="messages" element={<ComingSoon title="Messages" />} />
+
+        <Route index element={<RequireAuth><Feed /></RequireAuth>} />
+        <Route path="explore" element={<RequireAuth><Explore /></RequireAuth>} />
+        <Route path="notifications" element={<RequireAuth><ComingSoon title="Notifications" /></RequireAuth>} />
+        <Route path="messages" element={<RequireAuth><ComingSoon title="Messages" /></RequireAuth>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

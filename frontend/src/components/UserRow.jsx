@@ -17,7 +17,7 @@ export default function UserRow({ user, onFollowChange, onNavigate, compact = fa
           {!compact && user.bio && <span className="user-row-bio">{user.bio}</span>}
         </span>
       </Link>
-      {user.id !== me.id && (
+      {user.id !== me?.id && (
         <FollowButton
           userId={user.id}
           following={user.is_following}

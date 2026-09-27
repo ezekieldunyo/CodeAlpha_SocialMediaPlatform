@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import useRequireAuth from '../hooks/useRequireAuth.js';
 import { parseTimestamp, timeAgo } from '../utils/time.js';
 import Avatar from './Avatar.jsx';
 import CommentThread from './CommentThread.jsx';
@@ -9,17 +10,18 @@ import { CommentIcon, HeartIcon, TrashIcon } from './Icons.jsx';
 
 export default function PostItem({ post, onUpdate, onRemove }) {
   const { user } = useAuth();
+  const requireAuth = useRequireAuth();
   const [showThread, setShowThread] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
   // Set only by a click, so already-liked posts don't animate on load.
   const [pop, setPop] = useState(false);
   const [error, setError] = useState('');
   const { author } = post;
-  const isOwn = author.id === user.id;
+  const isOwn = author.id === user?.id;
 
   // Optimistic like: flip immediately, then reconcile with the server's count.
   async function toggleLike() {
-    if (likeBusy) return;
+    if (!requireAuth('Log in to like posts.') || likeBusy) return;
     setLikeBusy(true);
     setError('');
     const before = { liked_by_viewer: post.liked_by_viewer, like_count: post.like_count };

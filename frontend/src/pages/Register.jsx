@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import AuthShell from './AuthShell.jsx';
 
 export default function Register() {
   const { register } = useAuth();
+  // Set by useRequireAuth / the guest banner: why we're here and where to go back to.
+  const { state } = useLocation();
   const [fields, setFields] = useState({ display_name: '', username: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -40,7 +42,8 @@ export default function Register() {
   return (
     <AuthShell
       title="Create your account"
-      footer={<>Already have an account? <Link to="/login">Log in</Link></>}
+      subtitle={state?.reason}
+      footer={<>Already have an account? <Link to="/login" state={state}>Log in</Link></>}
     >
       <form className="form" onSubmit={submit}>
         <label className="field">

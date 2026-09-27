@@ -119,7 +119,7 @@ export default function Profile() {
   }, [username]);
 
   const profileUser = profile?.user;
-  const isSelf = profileUser?.id === me.id;
+  const isSelf = Boolean(me) && profileUser?.id === me.id;
   const list = usePostList({ feed: 'user', userId: profileUser?.id, enabled: Boolean(profileUser) });
   const { prepend, patchAuthor } = list;
 
