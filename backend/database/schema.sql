@@ -1,8 +1,8 @@
 -- Wavelink schema (MySQL 8). Column names match what the PHP endpoints query.
--- Load with:  mysql -u root -p < backend/schema.sql
+-- Load with:  mysql -u root -p < backend/database/schema.sql
 
-CREATE DATABASE IF NOT EXISTS wavelink CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE wavelink;
+CREATE DATABASE IF NOT EXISTS codealpha_social CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE codealpha_social;
 
 CREATE TABLE IF NOT EXISTS users (
     id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS posts (
     id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id    INT UNSIGNED NOT NULL,
-    content    TEXT         NOT NULL,
+    content    VARCHAR(1000) NOT NULL,
     image_url  VARCHAR(500) NULL,
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_posts_user_created (user_id, created_at),
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS comments (
     id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     post_id    INT UNSIGNED NOT NULL,
     user_id    INT UNSIGNED NOT NULL,
-    content    TEXT         NOT NULL,
+    content    VARCHAR(500)  NOT NULL,
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_comments_post_created (post_id, created_at),
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS likes (
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- "Can't follow yourself" is enforced in follow/toggle.php. MySQL 8 rejects a
+-- CHECK (follower_id <> following_id) here because both columns carry
+-- ON DELETE CASCADE foreign keys (error 3823).
 CREATE TABLE IF NOT EXISTS follows (
     follower_id  INT UNSIGNED NOT NULL,
     following_id INT UNSIGNED NOT NULL,

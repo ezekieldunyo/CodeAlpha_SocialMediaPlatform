@@ -10,12 +10,12 @@ function config(string $key) {
         $settings = [
             'DB_HOST' => '127.0.0.1',
             'DB_PORT' => '3306',
-            'DB_NAME' => 'wavelink',
+            'DB_NAME' => 'codealpha_social',
             'DB_USER' => 'root',
             'DB_PASS' => '',
             'JWT_SECRET' => 'change-me-in-config-local-php',
             'JWT_TTL' => 60 * 60 * 24 * 7, // 7 days
-            'CORS_ORIGIN' => 'http://localhost:5173',
+            'CORS_ORIGINS' => 'http://localhost:5173,http://127.0.0.1:5173',
         ];
 
         $localFile = __DIR__ . '/local.php';

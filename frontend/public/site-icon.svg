@@ -1,0 +1,41 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="10%" y1="100%" x2="95%" y2="0%">
+      <stop offset="0%" stop-color="#071226"/>
+      <stop offset="55%" stop-color="#0E2F52"/>
+      <stop offset="100%" stop-color="#1E63A6"/>
+    </linearGradient>
+    <linearGradient id="gradArcOuter" x1="0%" y1="0%" x2="100%" y2="60%">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="gradArcInner" x1="0%" y1="0%" x2="100%" y2="60%">
+      <stop offset="0%" stop-color="#22C1A4"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="gradWaveA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="gradWaveB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22C1A4"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="url(#bgGrad)"/>
+
+  <path d="M140,270 C200,190 312,190 372,262"
+        fill="none" stroke="url(#gradArcOuter)" stroke-width="26" stroke-linecap="round"/>
+  <path d="M188,292 C225,248 288,248 326,286"
+        fill="none" stroke="url(#gradArcInner)" stroke-width="22" stroke-linecap="round"/>
+
+  <g transform="translate(56,70) rotate(-5 200 150)">
+    <path d="M65,220 C102,303 133,350 160,362 C186,348 208,286 228,228"
+          fill="none" stroke="url(#gradWaveA)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M175,212 C204,292 230,344 252,357 C276,344 304,280 335,222"
+          fill="none" stroke="url(#gradWaveB)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="65" cy="220" r="15" fill="#2DD4BF"/>
+    <circle cx="335" cy="222" r="15" fill="#2563EB"/>
+  </g>
+</svg>

@@ -1,44 +1,63 @@
-# Wavelink
+# wavelink
 
-A mini social media platform built for **Task 2 of the CodeAlpha Full Stack Development internship**.
-Users can register, post, like, comment, follow each other, and edit their profile.
+A mini social media app built for the CodeAlpha Full Stack Development internship (Task 2). The GitHub repo is named `CodeAlpha_SocialMediaPlatform` per the internship's naming convention; the product itself is branded **wavelink**.
 
-- **Backend:** vanilla PHP 8 + PDO (prepared statements) + MySQL, JWT (HS256) Bearer auth
-- **Frontend:** React (Vite, plain JavaScript), React Router
+Users can create an account, post updates, follow other users, and like/comment on posts: the core loop of a social feed, built from scratch with a plain PHP REST API and a React frontend.
 
-## Project structure
+See `requirement.md` for the feature list, `design.md` for the design system, and `mockups/feed-mockup.html` for the target layout.
+
+Brand assets: `wavelink-icon.svg` (mark only), `wavelink-lockup-light.svg` (mark + wordmark), `wavelink-hero.svg` (marketing/auth hero), and favicons in `frontend/public/`.
+
+## Tech Stack
+
+| Layer     | Choice                                        |
+|-----------|-----------------------------------------------|
+| Frontend  | React (Vite) + plain JavaScript, React Router |
+| Backend   | Vanilla PHP 8 (PDO prepared statements, no framework) |
+| Database  | MySQL 8                                       |
+| Auth      | JWT (hand-rolled HS256, sent as Bearer token) |
+
+## Project Structure
 
 ```
-backend/
-  config/      config.php (settings), database.php (PDO), cors.php
-  includes/    jwt.php, auth.php (requireAuth / optionalAuth), helpers.php
-  api/
-    auth/      register.php, login.php
-    users/     profile.php, update_profile.php, suggestions.php
-    posts/     create.php, list.php, delete.php
-    comments/  create.php, list.php, delete.php
-    likes/     toggle.php
-    follow/    toggle.php, followers.php
-  schema.sql
-frontend/
-  src/
-    api.js              fetch wrapper for every endpoint
-    context/            AuthContext (JWT + current user in localStorage)
-    components/         Layout (3-column shell), PostItem, CommentThread, …
-    pages/              Login, Register, Feed, Profile, Explore
+CodeAlpha_SocialMediaPlatform/
+├── backend/
+│   ├── config/          # config.php (settings), database.php (PDO), cors.php
+│   ├── includes/        # jwt.php, auth.php (requireAuth / optionalAuth), helpers.php
+│   ├── api/
+│   │   ├── auth/        # register.php, login.php
+│   │   ├── users/       # profile.php, update_profile.php, suggestions.php
+│   │   ├── posts/       # create.php, list.php, delete.php
+│   │   ├── comments/    # create.php, list.php, delete.php
+│   │   ├── likes/       # toggle.php
+│   │   └── follow/      # toggle.php, followers.php
+│   └── database/
+│       └── schema.sql
+├── frontend/            # React app (Vite)
+│   └── src/
+│       ├── api.js       # fetch wrapper for every endpoint
+│       ├── context/     # AuthContext (JWT + current user in localStorage)
+│       ├── components/  # Layout (3-column shell), PostItem, CommentThread, …
+│       └── pages/       # Login, Register, Feed, Profile, Explore
+├── mockups/feed-mockup.html
+├── README.md
+├── requirement.md
+└── design.md
 ```
 
-## Running locally
+## Local Setup
 
 **1. Database**
 
 ```bash
-mysql -u root -p < backend/schema.sql
+mysql -u root -p < backend/database/schema.sql
 ```
 
+This creates the `codealpha_social` database and its five tables.
+
 **2. Backend config.** Copy `backend/config/local.example.php` to `backend/config/local.php`
-and set your MySQL password and a long random `JWT_SECRET`. (Environment variables with the
-same names also work.)
+and set your MySQL password and a long random `JWT_SECRET`. `local.php` is gitignored, so
+credentials never get committed. (Environment variables with the same names also work.)
 
 **3. Backend server** (from the repo root):
 
@@ -55,14 +74,15 @@ npm run dev
 ```
 
 Open http://localhost:5173. In dev, Vite proxies `/api/*` to `localhost:8000`, so no CORS setup
-is needed. To point the frontend at a backend elsewhere (e.g. Herd or Apache), set
-`VITE_API_URL` in `frontend/.env` (see `.env.example`) and `CORS_ORIGIN` in `local.php`.
+is needed. To point the frontend at a backend elsewhere (e.g. Herd, XAMPP or Apache), set
+`VITE_API_URL` in `frontend/.env` (see `.env.example`) and add the frontend's origin to
+`CORS_ORIGINS` in `local.php`.
 
 ## API
 
 All responses are JSON. Errors are always `{ "error": "message" }` with a matching HTTP status
-(400 validation, 401 auth, 403 not the owner, 404 not found, 405 wrong method, 409 conflict).
-Authenticated endpoints expect `Authorization: Bearer <token>`.
+(400 validation, 401 auth, 403 not the owner, 404 not found, 405 wrong method, 409 conflict,
+500 server). Authenticated endpoints expect `Authorization: Bearer <token>`.
 
 | Method | Endpoint | Auth | Returns |
 |---|---|---|---|
@@ -80,3 +100,9 @@ Authenticated endpoints expect `Authorization: Bearer <token>`.
 | POST | `likes/toggle.php` | ✓ | `{ liked, like_count }` |
 | POST | `follow/toggle.php` | ✓ | `{ following, follower_count }` |
 | GET | `follow/followers.php?user_id=&type=followers\|following` | optional | `{ users }` |
+
+## Internship Submission Checklist
+
+- [ ] Push code to GitHub as `CodeAlpha_SocialMediaPlatform`
+- [ ] Record a short video walkthrough, post on LinkedIn tagging @CodeAlpha
+- [ ] Submit via the WhatsApp group submission form

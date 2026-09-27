@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>wavelink — feed mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900: #0A1A33;
+    --navy-700: #123A52;
+    --teal: #2DD4BF;
+    --blue: #2563EB;
+    --gradient-brand: linear-gradient(135deg, #2DD4BF, #2563EB);
+    --paper: #FFFFFF;
+    --ink: #0F172A;
+    --muted: #6B7A8F;
+    --line: #E7EAEE;
+    --hover: #F4F6F8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0F1B2D;
+      --ink: #F1F5F9;
+      --muted: #8FA1B5;
+      --line: #223349;
+      --hover: #16283F;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .shell {
+    display: grid;
+    grid-template-columns: 260px minmax(0,600px) 320px;
+    max-width: 1240px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* ---- Left nav ---- */
+  .nav {
+    background: var(--navy-900);
+    color: #EAF1F8;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px 24px;
+  }
+  .brand svg { width: 30px; height: 30px; }
+  .brand span {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.3px;
+  }
+  .nav a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 12px;
+    border-radius: 999px;
+    color: #EAF1F8;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .nav a:hover { background: rgba(255,255,255,0.08); }
+  .nav a.active { font-weight: 600; }
+  .nav a svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .nav .post-btn {
+    margin-top: 16px;
+    background: var(--gradient-brand);
+    color: #06121F;
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 999px;
+    font-size: 15px;
+  }
+  .nav .post-btn:hover { opacity: 0.92; }
+  .nav .me {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: 999px;
+  }
+  .nav .me:hover { background: rgba(255,255,255,0.08); }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--gradient-brand);
+    flex-shrink: 0;
+  }
+  .me .name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+  .me .handle { font-size: 12px; color: #9FB3C8; }
+
+  /* ---- Feed column ---- */
+  .feed { border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0;
+    background: var(--paper);
+    z-index: 2;
+  }
+  .tabs .tab {
+    flex: 1;
+    text-align: center;
+    padding: 16px 0 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    position: relative;
+  }
+  .tabs .tab.active { color: var(--ink); font-weight: 600; }
+  .tabs .tab.active::after {
+    content: "";
+    position: absolute; bottom: -1px; left: 30%; right: 30%;
+    height: 3px; border-radius: 3px;
+    background: var(--gradient-brand);
+  }
+
+  .composer {
+    display: flex; gap: 12px;
+    padding: 16px;
+    border-bottom: 8px solid var(--hover);
+  }
+  .composer textarea {
+    flex: 1;
+    border: none; resize: none; outline: none;
+    background: transparent; color: var(--ink);
+    font-family: inherit; font-size: 17px;
+    min-height: 28px;
+  }
+  .composer textarea::placeholder { color: var(--muted); }
+  .composer-row { display: flex; align-items: center; margin-top: 10px; }
+  .composer-icons { display: flex; gap: 14px; color: var(--blue); flex: 1; }
+  .composer-icons svg { width: 19px; height: 19px; opacity: 0.85; }
+  .post-cta {
+    background: var(--gradient-brand);
+    color: #06121F;
+    border: none;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 8px 20px;
+    border-radius: 999px;
+  }
+
+  .post {
+    display: flex; gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .post .avatar.sm { width: 40px; height: 40px; }
+  .post-body { flex: 1; min-width: 0; }
+  .post-head { display: flex; align-items: baseline; gap: 6px; font-size: 15px; }
+  .post-head .name { font-weight: 600; }
+  .post-head .handle, .post-head .dot, .post-head .time { color: var(--muted); font-size: 14px; }
+  .post-text { margin: 2px 0 10px; font-size: 15px; line-height: 1.45; }
+  .post-actions { display: flex; gap: 48px; color: var(--muted); }
+  .post-actions .action { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .post-actions svg { width: 17px; height: 17px; }
+  .post-actions .liked { color: var(--blue); }
+
+  /* ---- Right rail ---- */
+  .rail { padding: 20px 16px; }
+  .search {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--hover);
+    border-radius: 999px;
+    padding: 11px 16px;
+    margin-bottom: 20px;
+  }
+  .search svg { width: 16px; height: 16px; color: var(--muted); }
+  .search span { color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: var(--hover);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h3 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 17px; font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .suggestion { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .suggestion .info { flex: 1; min-width: 0; }
+  .suggestion .name { font-size: 14px; font-weight: 600; }
+  .suggestion .handle { font-size: 13px; color: var(--muted); }
+  .follow-btn {
+    border: none;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 13px; font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- LEFT NAV -->
+  <nav class="nav">
+    <div class="brand">
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gA" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2DD4BF"/><stop offset="100%" stop-color="#2563EB"/>
+          </linearGradient>
+          <linearGradient id="gB" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#22C1A4"/><stop offset="100%" stop-color="#3B82F6"/>
+          </linearGradient>
+        </defs>
+        <g transform="rotate(-6 200 150)">
+          <path d="M65,92 C102,175 133,222 160,234 C186,220 208,158 228,100" fill="none" stroke="url(#gA)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M175,84 C204,164 230,216 252,229 C276,216 304,152 335,94" fill="none" stroke="url(#gB)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="65" cy="92" r="13" fill="#2DD4BF"/>
+          <circle cx="335" cy="94" r="13" fill="#2563EB"/>
+        </g>
+      </svg>
+      <span>wavelink</span>
+    </div>
+
+    <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Explore</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>Notifications</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Messages</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>More</a>
+
+    <div class="post-btn">Post</div>
+
+    <div class="me">
+      <div class="avatar"></div>
+      <div>
+        <div class="name">Ezekiel Dunyo</div>
+        <div class="handle">@DunyoEzekiel</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- FEED -->
+  <main class="feed">
+    <div class="tabs">
+      <div class="tab active">For you</div>
+      <div class="tab">Following</div>
+      <div class="tab">Design</div>
+      <div class="tab">Software</div>
+    </div>
+
+    <div class="composer">
+      <div class="avatar"></div>
+      <div style="flex:1">
+        <textarea placeholder="What's flowing?" rows="1"></textarea>
+        <div class="composer-row">
+          <div class="composer-icons">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M8 15c1 1.2 2.4 2 4 2s3-.8 4-2"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div class="post-cta">Post</div>
+        </div>
+      </div>
+    </div>
+
+    <article class="post">
+      <div class="avatar sm"></div>
+      <div class="post-body">
+        <div class="post-head">
+          <span class="name">Maya Chen</span>
+          <span class="handle">@mayacodes</span>
+          <span class="dot">·</span>
+          <span class="time">2h</span>
+        </div>
+        <p class="post-text">Finally shipped the onboarding redesign. Small waves, big ripples 🌊</p>
+        <div class="post-actions">
+          <div class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 01-9 8.4A8.4 8.4 0 013 11.5a8.4 8.4 0 019-8.4 8.4 8.4 0 019 8.4z"/></svg>14</div>
+          <div class="action liked"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.4-9.5-9A5.5 5.5 0 0112 5.5 5.5 5.5 0 0121.5 12c-2.5 4.6-9.5 9-9.5 9z"/></svg>128</div>
+          <div class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>9</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="post">
+      <div class="avatar sm"></div>
+      <div class="post-body">
+        <div class="post-head">
+          <span class="name">Kwame Boateng</span>
+          <span class="handle">@kwameb</span>
+          <span class="dot">·</span>
+          <span class="time">4h</span>
+        </div>
+        <p class="post-text">Two weeks into learning PHP + React together for the internship project. It's clicking now.</p>
+        <div class="post-actions">
+          <div class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 01-9 8.4A8.4 8.4 0 013 11.5a8.4 8.4 0 019-8.4 8.4 8.4 0 019 8.4z"/></svg>6</div>
+          <div class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.4-9.5-9A5.5 5.5 0 0112 5.5 5.5 5.5 0 0121.5 12c-2.5 4.6-9.5 9-9.5 9z"/></svg>41</div>
+          <div class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>2</div>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <!-- RIGHT RAIL -->
+  <aside class="rail">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span>Search wavelink</span>
+    </div>
+
+    <div class="card">
+      <h3>Who to follow</h3>
+      <div class="suggestion">
+        <div class="avatar"></div>
+        <div class="info"><div class="name">Ama Serwaa</div><div class="handle">@amaserwaa</div></div>
+        <div class="follow-btn">Follow</div>
+      </div>
+      <div class="suggestion">
+        <div class="avatar"></div>
+        <div class="info"><div class="name">Leo Tran</div><div class="handle">@leotran</div></div>
+        <div class="follow-btn">Follow</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Trending</h3>
+      <div class="suggestion"><div class="info"><div class="name">#CodeAlphaInternship</div><div class="handle">2,481 posts</div></div></div>
+      <div class="suggestion"><div class="info"><div class="name">#BuildInPublic</div><div class="handle">1,027 posts</div></div></div>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>
