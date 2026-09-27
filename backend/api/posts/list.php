@@ -42,7 +42,7 @@ $sql = "SELECT p.id, p.content, p.image_url, p.created_at,
         FROM posts p
         JOIN users u ON u.id = p.user_id
         WHERE $where
-        ORDER BY p.created_at DESC
+        ORDER BY p.created_at DESC, p.id DESC
         LIMIT :limit OFFSET :offset";
 
 $stmt = $pdo->prepare($sql);

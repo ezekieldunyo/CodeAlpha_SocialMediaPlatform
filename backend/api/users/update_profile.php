@@ -42,4 +42,7 @@ $stmt->execute($values);
 $stmt = $pdo->prepare('SELECT id, username, display_name, bio, avatar_url FROM users WHERE id = ?');
 $stmt->execute([$userId]);
 
-jsonResponse(200, ['user' => $stmt->fetch()]);
+$user = $stmt->fetch();
+$user['id'] = (int) $user['id'];
+
+jsonResponse(200, ['user' => $user]);
