@@ -29,7 +29,8 @@ export default function Login() {
     <AuthShell
       title="Log in to wavelink"
       subtitle={state?.reason}
-      footer={<>New here? <Link to="/register" state={state}>Create an account</Link></>}
+      backTo={state?.from}
+      footer={<>New here? <Link to="/register" replace state={state}>Create an account</Link></>}
     >
       <form className="form" onSubmit={submit}>
         <label className="field">

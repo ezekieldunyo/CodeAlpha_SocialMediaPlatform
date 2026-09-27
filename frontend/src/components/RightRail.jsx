@@ -11,7 +11,7 @@ function GuestCard() {
     <section className="rail-card">
       <h3 className="rail-title">New to wavelink?</h3>
       <p className="muted small rail-note">Sign up to post, like, comment and follow people.</p>
-      <Link to="/register" state={{ from: pathname }} className="btn btn-primary btn-block rail-cta">
+      <Link to="/register" replace state={{ from: pathname }} className="btn btn-primary btn-block rail-cta">
         Create account
       </Link>
     </section>

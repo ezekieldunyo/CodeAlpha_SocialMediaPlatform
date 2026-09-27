@@ -67,6 +67,7 @@
 | GET    | /api/users/suggestions.php    | Yes | "Who to follow": users the viewer doesn't follow yet ¹ |
 | POST   | /api/posts/create.php         | Yes | Create a post           |
 | GET    | /api/posts/list.php           | Home feed: Yes · User feed: No | Feed / profile posts |
+| GET    | /api/posts/get.php?id=        | No  | View a single post (same shape as a feed item) ³ |
 | DELETE | /api/posts/delete.php         | Yes | Delete own post         |
 | POST   | /api/comments/create.php      | Yes | Add a comment           |
 | GET    | /api/comments/list.php        | No  | List comments on a post |
@@ -77,5 +78,6 @@
 
 ¹ Added during the build, beyond the original endpoint list. Without it a new user has no way to discover anyone to follow, so the home feed stays empty. It powers the "Who to follow" rail and the Explore page.
 ² Required by §1.4 ("A user can delete their own comments") but missing from the original table.
+³ Added for the `/post/:id` page. Public like profiles: guests read it; a logged-in viewer also gets `liked_by_viewer`.
 
 Full request/response shapes are documented in the API table in `README.md`.

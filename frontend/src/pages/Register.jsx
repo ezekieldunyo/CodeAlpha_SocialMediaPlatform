@@ -43,7 +43,8 @@ export default function Register() {
     <AuthShell
       title="Create your account"
       subtitle={state?.reason}
-      footer={<>Already have an account? <Link to="/login" state={state}>Log in</Link></>}
+      backTo={state?.from}
+      footer={<>Already have an account? <Link to="/login" replace state={state}>Log in</Link></>}
     >
       <form className="form" onSubmit={submit}>
         <label className="field">

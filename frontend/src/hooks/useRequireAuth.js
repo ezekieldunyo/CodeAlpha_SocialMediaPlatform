@@ -13,7 +13,9 @@ export default function useRequireAuth() {
   return useCallback(
     (reason) => {
       if (user) return true;
-      navigate('/login', { state: { from: location.pathname + location.search, reason } });
+      // replace: after login, GuestOnly swaps /login for this page, so a push here
+      // would leave the page in history twice and Back would appear to do nothing.
+      navigate('/login', { replace: true, state: { from: location.pathname + location.search, reason } });
       return false;
     },
     [user, navigate, location.pathname, location.search]

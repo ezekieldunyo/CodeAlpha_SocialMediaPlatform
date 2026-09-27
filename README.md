@@ -27,7 +27,7 @@ CodeAlpha_SocialMediaPlatform/
 │   ├── api/
 │   │   ├── auth/        # register.php, login.php
 │   │   ├── users/       # profile.php, update_profile.php, suggestions.php
-│   │   ├── posts/       # create.php, list.php, delete.php
+│   │   ├── posts/       # create.php, list.php, get.php, delete.php
 │   │   ├── comments/    # create.php, list.php, delete.php
 │   │   ├── likes/       # toggle.php
 │   │   └── follow/      # toggle.php, followers.php
@@ -93,6 +93,7 @@ All responses are JSON. Errors are always `{ "error": "message" }` with a matchi
 | GET | `users/suggestions.php?limit=` | ✓ | `{ users }`: people you don't follow yet |
 | POST | `posts/create.php` | ✓ | `{ post }` |
 | GET | `posts/list.php?feed=home\|user&user_id=&page=` | home: ✓ | `{ posts, has_more }` |
+| GET | `posts/get.php?id=` | optional | `{ post }`: same shape as a `posts/list.php` item |
 | DELETE | `posts/delete.php?id=` | ✓ owner | `{ deleted }` |
 | POST | `comments/create.php` | ✓ | `{ comment }` |
 | GET | `comments/list.php?post_id=` | – | `{ comments }` |

@@ -1225,3 +1225,34 @@ textarea.input {
     display: none;
   }
 }
+
+/* ---------- Single post (/post/:id) ---------- */
+.post-time:hover {
+  color: var(--ink);
+}
+.post-text.is-link,
+.post-image.is-link {
+  cursor: pointer;
+}
+.page-header-back {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 8px;
+}
+.page-header-back h1 {
+  padding-left: 0;
+}
+.post-detail:hover {
+  background: none;
+}
+.post-detail > .post-body > .post-text {
+  font-size: 17px;
+  margin-top: 6px;
+}
+.auth-back {
+  display: inline-block;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 500;
+}

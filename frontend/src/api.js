@@ -63,6 +63,7 @@ export const api = {
   updateProfile: (fields) => request('users/update_profile.php', { method: 'PUT', body: fields }),
   getSuggestions: (limit = 5) => request('users/suggestions.php', { query: { limit } }),
 
+  getPost: (id) => request('posts/get.php', { query: { id } }),
   listPosts: ({ feed, userId, page }) =>
     request('posts/list.php', { query: { feed, user_id: userId, page } }),
   createPost: (content, imageUrl) =>

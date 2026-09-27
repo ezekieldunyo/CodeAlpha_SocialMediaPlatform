@@ -58,6 +58,9 @@ export const CloseIcon = (p) => (
 export const LogoutIcon = (p) => (
   <Icon {...p}><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4" /><path d="M10 16l-4-4 4-4M6 12h10" /></Icon>
 );
+export const BackIcon = (p) => (
+  <Icon {...p}><path d="M19 12H5M11 6l-6 6 6 6" /></Icon>
+);
 export const CalendarIcon = (p) => (
   <Icon {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></Icon>
 );

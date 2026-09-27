@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import useRequireAuth from '../hooks/useRequireAuth.js';
@@ -8,16 +8,27 @@ import Avatar from './Avatar.jsx';
 import CommentThread from './CommentThread.jsx';
 import { CommentIcon, HeartIcon, TrashIcon } from './Icons.jsx';
 
-export default function PostItem({ post, onUpdate, onRemove }) {
+// `detail` is the /post/:id page: thread open from the start, and the
+// content/timestamp aren't links to the page you're already on.
+export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
   const { user } = useAuth();
   const requireAuth = useRequireAuth();
-  const [showThread, setShowThread] = useState(false);
+  const navigate = useNavigate();
+  const [showThread, setShowThread] = useState(detail);
   const [likeBusy, setLikeBusy] = useState(false);
   // Set only by a click, so already-liked posts don't animate on load.
   const [pop, setPop] = useState(false);
   const [error, setError] = useState('');
   const { author } = post;
   const isOwn = author.id === user?.id;
+  const postPath = `/post/${post.id}`;
+
+  // Clicking the text/image opens the post, unless the reader is selecting
+  // text. The timestamp is the real <Link> for keyboard and screen readers.
+  function openPost() {
+    if (detail || window.getSelection()?.toString()) return;
+    navigate(postPath);
+  }
 
   // Optimistic like: flip immediately, then reconcile with the server's count.
   async function toggleLike() {
@@ -52,7 +63,7 @@ export default function PostItem({ post, onUpdate, onRemove }) {
   }
 
   return (
-    <article className="post">
+    <article className={`post ${detail ? 'post-detail' : ''}`}>
       <Link to={`/u/${author.username}`} className="post-avatar">
         <Avatar user={author} size={40} />
       </Link>
@@ -61,13 +72,23 @@ export default function PostItem({ post, onUpdate, onRemove }) {
           <Link to={`/u/${author.username}`} className="name">{author.display_name}</Link>
           <span className="muted truncate">@{author.username}</span>
           <span className="muted">·</span>
-          <time className="muted" dateTime={post.created_at} title={parseTimestamp(post.created_at).toLocaleString()}>
-            {timeAgo(post.created_at)}
-          </time>
+          {detail ? (
+            <time className="muted" dateTime={post.created_at}>
+              {parseTimestamp(post.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+            </time>
+          ) : (
+            <Link to={postPath} className="post-time muted">
+              <time dateTime={post.created_at} title={parseTimestamp(post.created_at).toLocaleString()}>
+                {timeAgo(post.created_at)}
+              </time>
+            </Link>
+          )}
         </div>
 
-        <p className="post-text">{post.content}</p>
-        {post.image_url && <img className="post-image" src={post.image_url} alt="" loading="lazy" />}
+        <p className={`post-text ${detail ? '' : 'is-link'}`} onClick={openPost}>{post.content}</p>
+        {post.image_url && (
+          <img className={`post-image ${detail ? '' : 'is-link'}`} src={post.image_url} alt="" loading="lazy" onClick={openPost} />
+        )}
 
         <div className="post-actions">
           <button

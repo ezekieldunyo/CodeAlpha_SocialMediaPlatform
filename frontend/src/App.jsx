@@ -6,6 +6,7 @@ import Register from './pages/Register.jsx';
 import Feed from './pages/Feed.jsx';
 import Explore from './pages/Explore.jsx';
 import Profile from './pages/Profile.jsx';
+import PostPage from './pages/PostPage.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 
 // Pages that only make sense for a signed-in user (the home feed is "people
@@ -32,6 +33,7 @@ export default function App() {
       <Route element={<Layout />}>
         {/* Public, read-only for guests (requirement.md §4). */}
         <Route path="u/:username" element={<Profile />} />
+        <Route path="post/:id" element={<PostPage />} />
 
         <Route index element={<RequireAuth><Feed /></RequireAuth>} />
         <Route path="explore" element={<RequireAuth><Explore /></RequireAuth>} />

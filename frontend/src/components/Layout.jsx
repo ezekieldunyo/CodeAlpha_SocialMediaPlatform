@@ -186,8 +186,8 @@ function GuestBanner() {
         <span>Join wavelink to post, like, comment and follow.</span>
       </div>
       <div className="guest-banner-actions">
-        <Link to="/login" state={{ from: pathname }} className="btn btn-outline-light">Log in</Link>
-        <Link to="/register" state={{ from: pathname }} className="btn btn-primary">Sign up</Link>
+        <Link to="/login" replace state={{ from: pathname }} className="btn btn-outline-light">Log in</Link>
+        <Link to="/register" replace state={{ from: pathname }} className="btn btn-primary">Sign up</Link>
       </div>
     </aside>
   );
