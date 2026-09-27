@@ -49,9 +49,8 @@ CREATE TABLE IF NOT EXISTS likes (
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- "Can't follow yourself" is enforced in follow/toggle.php. MySQL 8 rejects a
--- CHECK (follower_id <> following_id) here because both columns carry
--- ON DELETE CASCADE foreign keys (error 3823).
+-- follow/toggle.php returns a 400 for self-follows; the CHECK backs that up
+-- at the database level (enforced from MySQL 8.0.16).
 CREATE TABLE IF NOT EXISTS follows (
     follower_id  INT UNSIGNED NOT NULL,
     following_id INT UNSIGNED NOT NULL,
@@ -59,5 +58,6 @@ CREATE TABLE IF NOT EXISTS follows (
     PRIMARY KEY (follower_id, following_id),
     INDEX idx_follows_following (following_id),
     FOREIGN KEY (follower_id)  REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE,
+    CHECK (follower_id <> following_id)
 ) ENGINE=InnoDB;
