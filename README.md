@@ -38,8 +38,9 @@ CodeAlpha_SocialMediaPlatform/
 │       ├── api.js       # fetch wrapper for every endpoint
 │       ├── context/     # AuthContext (JWT + current user in localStorage)
 │       ├── components/  # Layout (3-column shell), PostItem, CommentThread, …
-│       └── pages/       # Login, Register, Feed, Profile, Explore
+│       └── pages/       # Login, Register, Feed, Profile, PostPage, Explore
 ├── mockups/feed-mockup.html
+├── tests/               # API (curl) + browser suites, see "Tests" below
 ├── README.md
 ├── requirement.md
 └── design.md
@@ -90,9 +91,9 @@ All responses are JSON. Errors are always `{ "error": "message" }` with a matchi
 | POST | `auth/login.php` | – | `{ token, user }` |
 | GET | `users/profile.php?username=` or `?id=` | optional | `{ user, post_count, follower_count, following_count, is_following, is_self }` |
 | PUT | `users/update_profile.php` | ✓ | `{ user }` |
-| GET | `users/suggestions.php?limit=` | ✓ | `{ users }`: people you don't follow yet |
+| GET | `users/suggestions.php?limit=` | ✓ | `{ users, has_other_users }`: people you don't follow yet, and whether anyone else has joined |
 | POST | `posts/create.php` | ✓ | `{ post }` |
-| GET | `posts/list.php?feed=home\|user&user_id=&page=` | home: ✓ | `{ posts, has_more }` |
+| GET | `posts/list.php?feed=home\|user\|all&user_id=&page=` | home: ✓ | `{ posts, has_more }`. `all` = everyone's posts ("For you", public); `user` needs `user_id`; other values → 400 |
 | GET | `posts/get.php?id=` | optional | `{ post }`: same shape as a `posts/list.php` item |
 | DELETE | `posts/delete.php?id=` | ✓ owner | `{ deleted }` |
 | POST | `comments/create.php` | ✓ | `{ comment }` |
@@ -101,6 +102,31 @@ All responses are JSON. Errors are always `{ "error": "message" }` with a matchi
 | POST | `likes/toggle.php` | ✓ | `{ liked, like_count }` |
 | POST | `follow/toggle.php` | ✓ | `{ following, follower_count }` |
 | GET | `follow/followers.php?user_id=&type=followers\|following` | optional | `{ users }` |
+
+## Tests
+
+The suites need a running backend and an **empty** database (they register fixed
+usernames). `tests/reset-db.php --yes` drops and re-creates the database named in your
+config, so only point it at a development database.
+
+```bash
+# Everything, resetting the DB before each suite (backend + `npm run dev` must be running):
+cd tests/e2e && npm install && cd ../..
+API_URL=http://backend.test/api bash tests/run-all.sh
+
+# Or one at a time:
+php tests/reset-db.php --yes
+API_URL=http://backend.test/api bash tests/api/run.sh      # curl suite
+API_URL=http://backend.test/api node tests/e2e/feed.mjs    # a browser suite
+```
+
+- `tests/api/run.sh`: every endpoint, status codes, ownership (403), pagination, length
+  limits, CORS, and the `feed=all` / `has_other_users` behaviour.
+- `tests/e2e/*.mjs`: browser flows via `playwright-core`, driving the installed Edge
+  (`BROWSER_CHANNEL=chrome` for Chrome): `member`, `guest`, `post` (single-post page),
+  `feed` (For you / Following tabs, Who to follow), and `smoke` (login, post, like).
+- `API_URL` must be the backend the frontend is using (its `VITE_API_URL` or the Vite proxy
+  target). Defaults: `API_URL=http://localhost:8000/api`, `APP_URL=http://localhost:5173`.
 
 ## Internship Submission Checklist
 

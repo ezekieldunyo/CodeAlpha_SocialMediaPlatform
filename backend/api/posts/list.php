@@ -8,16 +8,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     jsonError(405, 'Method not allowed.');
 }
 
-$feed = $_GET['feed'] ?? 'home';           // 'home' or 'user'
+$feed = $_GET['feed'] ?? 'home';           // 'home', 'user' or 'all'
 $targetUserId = isset($_GET['user_id']) ? (int) $_GET['user_id'] : null;
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 20;
 $offset = ($page - 1) * $perPage;
 
+if (!in_array($feed, ['home', 'user', 'all'], true)) {
+    jsonError(400, "feed must be 'home', 'user' or 'all'.");
+}
+
 $viewerId = optionalAuth();
 $pdo = getDbConnection();
 
-if ($feed === 'user') {
+if ($feed === 'all') {
+    // "For you": everyone's posts, newest first. Public, like profile feeds.
+    $where = '1 = 1';
+    $params = [];
+} elseif ($feed === 'user') {
     if (!$targetUserId) {
         jsonError(400, 'user_id is required when feed=user.');
     }
