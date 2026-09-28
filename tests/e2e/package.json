@@ -1,0 +1,16 @@
+{
+  "name": "wavelink-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests for wavelink. Drives an installed Edge/Chrome via playwright-core (no browser download).",
+  "scripts": {
+    "member": "node member.mjs",
+    "guest": "node guest.mjs",
+    "post": "node post.mjs",
+    "feed": "node feed.mjs",
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}

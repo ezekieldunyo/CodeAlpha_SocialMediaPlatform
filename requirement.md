@@ -64,9 +64,9 @@
 | POST   | /api/auth/login.php           | No  | Log in, get token       |
 | GET    | /api/users/profile.php?id= (or ?username=) | No  | View a profile          |
 | PUT    | /api/users/update_profile.php | Yes | Edit own profile        |
-| GET    | /api/users/suggestions.php    | Yes | "Who to follow": users the viewer doesn't follow yet ¹ |
+| GET    | /api/users/suggestions.php    | Yes | "Who to follow": users the viewer doesn't follow yet, plus whether anyone else has joined ¹ |
 | POST   | /api/posts/create.php         | Yes | Create a post           |
-| GET    | /api/posts/list.php           | Home feed: Yes · User feed: No | Feed / profile posts |
+| GET    | /api/posts/list.php?feed=home\|user\|all | Home feed: Yes · User and "For you" feeds: No | Home feed, a profile's posts, or "For you" (everyone's posts) ⁴ |
 | GET    | /api/posts/get.php?id=        | No  | View a single post (same shape as a feed item) ³ |
 | DELETE | /api/posts/delete.php         | Yes | Delete own post         |
 | POST   | /api/comments/create.php      | Yes | Add a comment           |
@@ -79,5 +79,6 @@
 ¹ Added during the build, beyond the original endpoint list. Without it a new user has no way to discover anyone to follow, so the home feed stays empty. It powers the "Who to follow" rail and the Explore page.
 ² Required by §1.4 ("A user can delete their own comments") but missing from the original table.
 ³ Added for the `/post/:id` page. Public like profiles: guests read it; a logged-in viewer also gets `liked_by_viewer`.
+⁴ `feed=all` was added for the "For you" tab (the default on the home page): the most recent posts from everyone, newest first, paginated like the other feeds. It is public, so logged-out visitors can read it; `feed=home` still requires login. Any other `feed` value returns 400.
 
 Full request/response shapes are documented in the API table in `README.md`.
