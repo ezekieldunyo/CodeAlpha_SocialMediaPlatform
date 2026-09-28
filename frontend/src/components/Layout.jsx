@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import Avatar from './Avatar.jsx';
 import Composer from './Composer.jsx';
 import Modal from './Modal.jsx';
+import Logo from './Logo.jsx';
 import RightRail from './RightRail.jsx';
 import {
   BellIcon,
@@ -11,7 +12,6 @@ import {
   FeatherIcon,
   GradientDefs,
   HomeIcon,
-  LogoMark,
   LogoutIcon,
   MailIcon,
   MoreIcon,
@@ -23,10 +23,10 @@ function NavIcon({ icon: Icon, isActive, size = 20 }) {
   return <Icon size={size} stroke={isActive ? 'url(#wl-grad)' : 'currentColor'} strokeWidth={isActive ? 2.2 : 1.8} />;
 }
 
-function Brand({ size = 26 }) {
+function Brand({ size = 34 }) {
   return (
     <Link to="/" className="brand" aria-label="wavelink home">
-      <LogoMark size={size} />
+      <Logo size={size} />
       <span className="wordmark">wavelink</span>
     </Link>
   );
@@ -136,7 +136,7 @@ function MobileHeader() {
   const { user } = useAuth();
   return (
     <header className="mobile-header">
-      <Brand size={22} />
+      <Brand size={28} />
       {user && (
         <Link to={`/u/${user.username}`} aria-label="Your profile">
           <Avatar user={user} size={32} />

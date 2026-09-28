@@ -124,7 +124,8 @@ API_URL=http://backend.test/api node tests/e2e/feed.mjs    # a browser suite
   limits, CORS, and the `feed=all` / `has_other_users` behaviour.
 - `tests/e2e/*.mjs`: browser flows via `playwright-core`, driving the installed Edge
   (`BROWSER_CHANNEL=chrome` for Chrome): `member`, `guest`, `post` (single-post page),
-  `feed` (For you / Following tabs, Who to follow), and `smoke` (login, post, like).
+  `feed` (For you / Following tabs, Who to follow), `smoke` (login, post, like), and `logo`
+  (the app tile in the sidebar, mobile header and auth pages: alt, size, sharpness at 1x-3x).
 - `API_URL` must be the backend the frontend is using (its `VITE_API_URL` or the Vite proxy
   target). Defaults: `API_URL=http://localhost:8000/api`, `APP_URL=http://localhost:5173`.
 

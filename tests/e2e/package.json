@@ -8,7 +8,8 @@
     "guest": "node guest.mjs",
     "post": "node post.mjs",
     "feed": "node feed.mjs",
-    "smoke": "node smoke.mjs"
+    "smoke": "node smoke.mjs",
+    "logo": "node logo.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

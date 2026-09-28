@@ -134,6 +134,13 @@ button {
 }
 
 /* ---------- Brand ---------- */
+/* wavelink app tile (components/Logo.jsx). The PNG has its own rounded dark
+   background and transparent corners: no box, radius or filter added here. */
+.logo-tile {
+  display: block;
+  flex-shrink: 0;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -941,9 +948,6 @@ textarea.input {
   text-align: center;
   background: linear-gradient(45deg, var(--navy-900) 0%, var(--navy-700) 55%, #1f6e6a 100%);
 }
-.auth-brand-mark {
-  margin-bottom: 24px;
-}
 .auth-brand h1 {
   font-size: 56px;
   font-weight: 700;
@@ -980,8 +984,8 @@ textarea.input {
   margin-top: 24px;
   text-align: center;
 }
-.auth-mobile-logo {
-  display: none;
+/* The app tile above the login / sign-up form (88px, 512px source). */
+.auth-logo {
   margin-bottom: 20px;
 }
 
@@ -1140,9 +1144,6 @@ textarea.input {
   }
   .auth-brand {
     display: none;
-  }
-  .auth-mobile-logo {
-    display: block;
   }
 }
 
