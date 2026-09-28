@@ -39,4 +39,9 @@ $users = array_map(function ($row) {
     ];
 }, $stmt->fetchAll());
 
-jsonResponse(200, ['users' => $users]);
+// Lets the client tell "you already follow everyone" apart from "you're the
+// only person here" when the list comes back empty.
+$others = $pdo->prepare('SELECT EXISTS(SELECT 1 FROM users WHERE id <> ?)');
+$others->execute([$userId]);
+
+jsonResponse(200, ['users' => $users, 'has_other_users' => (bool) $others->fetchColumn()]);
