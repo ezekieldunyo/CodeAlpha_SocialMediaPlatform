@@ -65,38 +65,13 @@ export const CalendarIcon = (p) => (
   <Icon {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></Icon>
 );
 
-// The wavelink "W" mark, from wavelink-icon.svg (4:3 aspect). Its gradients
-// live in <GradientDefs>, rendered once by every screen that shows the mark.
-export function LogoMark({ size = 30 }) {
-  return (
-    <svg width={Math.round(size * (4 / 3))} height={size} viewBox="0 0 400 300" aria-hidden="true">
-      <g transform="rotate(-6 200 150)">
-        <path d="M65,92 C102,175 133,222 160,234 C186,220 208,158 228,100" fill="none" stroke="url(#wl-mark-a)" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M175,84 C204,164 230,216 252,229 C276,216 304,152 335,94" fill="none" stroke="url(#wl-mark-b)" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="65" cy="92" r="13" fill="#2DD4BF" />
-        <circle cx="228" cy="100" r="13" fill="#22C1A4" />
-        <circle cx="175" cy="84" r="13" fill="#22C1A4" />
-        <circle cx="335" cy="94" r="13" fill="#2563EB" />
-      </g>
-    </svg>
-  );
-}
-
-// Shared gradients. wl-grad is in user space (0-24) so it also paints thin,
+// Shared gradient. wl-grad is in user space (0-24) so it also paints thin,
 // straight strokes on the 24px icons — objectBoundingBox would collapse there.
 // Used by the active nav icon and the liked heart.
 export function GradientDefs() {
   return (
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
       <defs>
-        <linearGradient id="wl-mark-a" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0" stopColor="#2DD4BF" />
-          <stop offset="1" stopColor="#2563EB" />
-        </linearGradient>
-        <linearGradient id="wl-mark-b" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0" stopColor="#22C1A4" />
-          <stop offset="1" stopColor="#3B82F6" />
-        </linearGradient>
         <linearGradient id="wl-grad" gradientUnits="userSpaceOnUse" x1="2" y1="2" x2="22" y2="22">
           <stop offset="0" stopColor="#2DD4BF" />
           <stop offset="1" stopColor="#2563EB" />
