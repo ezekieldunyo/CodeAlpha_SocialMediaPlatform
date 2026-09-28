@@ -35,7 +35,8 @@ export default function App() {
         <Route path="u/:username" element={<Profile />} />
         <Route path="post/:id" element={<PostPage />} />
 
-        <Route index element={<RequireAuth><Feed /></RequireAuth>} />
+        {/* Home: "For you" is public; the "Following" tab asks guests to log in. */}
+        <Route index element={<Feed />} />
         <Route path="explore" element={<RequireAuth><Explore /></RequireAuth>} />
         <Route path="notifications" element={<RequireAuth><ComingSoon title="Notifications" /></RequireAuth>} />
         <Route path="messages" element={<RequireAuth><ComingSoon title="Messages" /></RequireAuth>} />

@@ -20,13 +20,18 @@ function GuestCard() {
 
 function Suggestions() {
   const [users, setUsers] = useState(null);
+  const [hasOthers, setHasOthers] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     api
       .getSuggestions(5)
-      .then((data) => !cancelled && setUsers(data.users))
+      .then((data) => {
+        if (cancelled) return;
+        setUsers(data.users);
+        setHasOthers(data.has_other_users);
+      })
       .catch((err) => !cancelled && setError(err.message));
     return () => {
       cancelled = true;
@@ -43,7 +48,9 @@ function Suggestions() {
       {error && <p className="form-error rail-note">{error}</p>}
       {!users && !error && <p className="muted small rail-note">Loading…</p>}
       {users?.length === 0 && (
-        <p className="muted small rail-note">You're following everyone here. Nice.</p>
+        <p className="muted small rail-note">
+          {hasOthers ? "You're following everyone here. Nice." : 'No one else has joined yet.'}
+        </p>
       )}
       {users?.map((u) => (
         <UserRow key={u.id} user={u} onFollowChange={setFollowing} compact />
@@ -61,7 +68,7 @@ export default function RightRail() {
     <aside className="right-rail">
       {user ? <Suggestions /> : <GuestCard />}
       <footer className="rail-footer">
-        wavelink · CodeAlpha Full Stack Internship · {new Date().getFullYear()}
+        wavelink · {new Date().getFullYear()}
       </footer>
     </aside>
   );

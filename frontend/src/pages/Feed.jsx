@@ -1,22 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import useRequireAuth from '../hooks/useRequireAuth.js';
 import usePostList from '../hooks/usePostList.js';
 import Composer, { POST_CREATED_EVENT } from '../components/Composer.jsx';
 import PostList from '../components/PostList.jsx';
 
-// The mockup's feed opens straight onto sticky tabs. Its "For you" / topic
-// tabs would need a global or tagged feed the API doesn't have, so the tabs
-// map to the two feeds posts/list.php supports.
+// "For you" is everyone's posts (feed=all) and is public, so guests land here
+// read-only. "Following" is the viewer's follows plus their own posts.
 const TABS = [
+  { id: 'all', label: 'For you' },
   { id: 'home', label: 'Following' },
-  { id: 'mine', label: 'Your posts' },
 ];
 
 export default function Feed() {
   const { user } = useAuth();
-  const [tab, setTab] = useState('home');
-  const list = usePostList(tab === 'home' ? { feed: 'home' } : { feed: 'user', userId: user.id });
+  const requireAuth = useRequireAuth();
+  const [tab, setTab] = useState('all');
+  const list = usePostList({ feed: tab });
   const { prepend } = list;
 
   // Both feeds include the viewer's own posts, so new posts always belong here.
@@ -25,6 +26,11 @@ export default function Feed() {
     window.addEventListener(POST_CREATED_EVENT, onCreated);
     return () => window.removeEventListener(POST_CREATED_EVENT, onCreated);
   }, [prepend]);
+
+  function selectTab(id) {
+    if (id === 'home' && !requireAuth('Log in to see posts from people you follow.')) return;
+    setTab(id);
+  }
 
   return (
     <>
@@ -37,7 +43,7 @@ export default function Feed() {
               role="tab"
               aria-selected={tab === t.id}
               className={`tab ${tab === t.id ? 'is-active' : ''}`}
-              onClick={() => setTab(t.id)}
+              onClick={() => selectTab(t.id)}
             >
               {t.label}
             </button>
@@ -45,20 +51,20 @@ export default function Feed() {
         </div>
       </header>
 
-      <Composer />
+      {user && <Composer />}
 
       <PostList
         list={list}
         empty={
-          tab === 'home' ? (
+          tab === 'all' ? (
             <>
-              <strong>Your feed is quiet.</strong>
-              <p>Follow people to see their posts here. <Link to="/explore">Find people to follow</Link></p>
+              <strong>Nothing here yet.</strong>
+              <p>{user ? 'Be the first to post something.' : 'No one has posted yet.'}</p>
             </>
           ) : (
             <>
-              <strong>No posts yet.</strong>
-              <p>Say something. It'll show up here.</p>
+              <strong>Your feed is quiet.</strong>
+              <p>Follow people to see their posts here. <Link to="/explore">Find people to follow</Link></p>
             </>
           )
         }

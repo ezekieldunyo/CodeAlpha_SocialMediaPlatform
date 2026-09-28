@@ -4,13 +4,18 @@ import UserRow from '../components/UserRow.jsx';
 
 export default function Explore() {
   const [users, setUsers] = useState(null);
+  const [hasOthers, setHasOthers] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     api
       .getSuggestions(30)
-      .then((data) => !cancelled && setUsers(data.users))
+      .then((data) => {
+        if (cancelled) return;
+        setUsers(data.users);
+        setHasOthers(data.has_other_users);
+      })
       .catch((err) => !cancelled && setError(err.message));
     return () => {
       cancelled = true;
@@ -31,8 +36,8 @@ export default function Explore() {
       {!users && !error && <div className="list-status"><span className="spinner" aria-label="Loading" /></div>}
       {users?.length === 0 && (
         <div className="empty">
-          <strong>No one new to suggest.</strong>
-          <p>You're already following everyone on wavelink.</p>
+          <strong>{hasOthers ? 'No one new to suggest.' : 'No one else has joined yet.'}</strong>
+          <p>{hasOthers ? "You're already following everyone on wavelink." : 'When people sign up, they’ll show up here.'}</p>
         </div>
       )}
       <div className="user-list">
