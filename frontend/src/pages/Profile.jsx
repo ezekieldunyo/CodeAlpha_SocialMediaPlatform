@@ -3,9 +3,11 @@ import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import usePostList from '../hooks/usePostList.js';
+import useImageUpload from '../hooks/useImageUpload.js';
 import { compactNumber, monthYear } from '../utils/time.js';
 import Avatar from '../components/Avatar.jsx';
 import FollowButton from '../components/FollowButton.jsx';
+import ImagePicker from '../components/ImagePicker.jsx';
 import Modal from '../components/Modal.jsx';
 import PostList from '../components/PostList.jsx';
 import UserRow from '../components/UserRow.jsx';
@@ -20,17 +22,27 @@ function EditProfileModal({ profileUser, onClose, onSaved }) {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // A newly picked photo is uploaded straight away; it only becomes the
+  // avatar when the form is saved.
+  const photo = useImageUpload(api.uploadAvatar);
   const set = (name) => (e) => setFields((f) => ({ ...f, [name]: e.target.value }));
+  const shownAvatar = photo.preview || fields.avatar_url || null;
+
+  function removePhoto() {
+    photo.clear();
+    setFields((f) => ({ ...f, avatar_url: '' }));
+  }
 
   async function submit(e) {
     e.preventDefault();
+    if (photo.uploading) return;
     setBusy(true);
     setError('');
     try {
       const { user } = await api.updateProfile({
         display_name: fields.display_name.trim(),
         bio: fields.bio.trim(),
-        avatar_url: fields.avatar_url.trim(),
+        avatar_url: photo.url || fields.avatar_url,
       });
       onSaved(user);
     } catch (err) {
@@ -43,7 +55,25 @@ function EditProfileModal({ profileUser, onClose, onSaved }) {
     <Modal title="Edit profile" onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <div className="edit-avatar">
-          <Avatar user={{ ...profileUser, ...fields, avatar_url: fields.avatar_url || null }} size={72} />
+          <div className={`edit-avatar-preview ${photo.uploading ? 'is-uploading' : ''}`}>
+            <Avatar user={{ ...profileUser, ...fields, avatar_url: shownAvatar }} size={72} />
+            {photo.uploading && (
+              <span className="upload-overlay round" role="status" aria-label="Uploading photo">
+                <span className="spinner" aria-hidden="true" />
+              </span>
+            )}
+          </div>
+          <div className="edit-avatar-actions">
+            <ImagePicker className="btn btn-outline btn-sm" label={shownAvatar ? 'Change photo' : 'Upload photo'} onPick={photo.pick} disabled={busy}>
+              {shownAvatar ? 'Change photo' : 'Upload photo'}
+            </ImagePicker>
+            {shownAvatar && (
+              <button type="button" className="btn btn-outline btn-sm" onClick={removePhoto} disabled={busy}>
+                Remove photo
+              </button>
+            )}
+          </div>
+          {photo.error && <p className="form-error" role="alert">{photo.error}</p>}
         </div>
         <label className="field">
           <span>Name</span>
@@ -54,13 +84,9 @@ function EditProfileModal({ profileUser, onClose, onSaved }) {
           <textarea className="input" rows={3} value={fields.bio} onChange={set('bio')} maxLength={280} />
           <small className="muted">{280 - fields.bio.length} characters left</small>
         </label>
-        <label className="field">
-          <span>Avatar image URL</span>
-          <input className="input" type="url" value={fields.avatar_url} onChange={set('avatar_url')} placeholder="https://…" />
-        </label>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="btn btn-primary btn-block" disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
+        <button className="btn btn-primary btn-block" disabled={busy || photo.uploading}>
+          {busy ? 'Saving…' : photo.uploading ? 'Uploading photo…' : 'Save'}
         </button>
       </form>
     </Modal>
