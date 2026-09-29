@@ -16,6 +16,8 @@ function config(string $key) {
             'JWT_SECRET' => 'change-me-in-config-local-php',
             'JWT_TTL' => 60 * 60 * 24 * 7, // 7 days
             'CORS_ORIGINS' => 'http://localhost:5173,http://127.0.0.1:5173',
+            // Public base URL of backend/uploads/. Empty = derived from the request.
+            'UPLOADS_URL' => '',
         ];
 
         $localFile = __DIR__ . '/local.php';
