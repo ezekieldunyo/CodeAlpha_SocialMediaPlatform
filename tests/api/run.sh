@@ -144,14 +144,14 @@ same_as_feed() { # token-or-empty label
   [ "$r" = same ] && { echo "PASS  get.php post identical to feed item ($2)"; pass=$((pass+1)); } || { echo "FAIL  get.php vs feed item ($2): $r"; fail=$((fail+1)); }
 }
 req GET "posts/get.php?id=$PID"
-check "get post as guest" 200 "$CODE" "$BODY" '^\{"post":\{"id":[0-9]+,"content":"Hello from Bob .*","image_url":null,"created_at":"[0-9-]+ [0-9:]+","like_count":0,"comment_count":0,"liked_by_viewer":false,"bookmarked_by_viewer":false,"author":\{"id":[0-9]+,"username":"bob","display_name":"Bob","avatar_url":null\}\}\}$'
+check "get post as guest" 200 "$CODE" "$BODY" '^\{"post":\{"id":[0-9]+,"content":"Hello from Bob .*","image_url":null,"created_at":"[0-9-]+ [0-9:]+","like_count":0,"comment_count":0,"repost_count":0,"liked_by_viewer":false,"bookmarked_by_viewer":false,"reposted_by_viewer":false,"author":\{"id":[0-9]+,"username":"bob","display_name":"Bob","avatar_url":null\},"reposted_by":null\}\}$'
 same_as_feed "" "guest"
 curl -s -o /dev/null -X POST $B/likes/toggle.php -H "Authorization: Bearer $TA" -H "Content-Type: application/json" --data-binary "{\"post_id\":$PID}"
 req GET "posts/get.php?id=$PID" "$TA"
-check "get post as liker: liked_by_viewer true" 200 "$CODE" "$BODY" '"like_count":1,"comment_count":0,"liked_by_viewer":true'
+check "get post as liker: liked_by_viewer true" 200 "$CODE" "$BODY" '"like_count":1,"comment_count":0,"repost_count":0,"liked_by_viewer":true'
 same_as_feed "$TA" "logged-in liker"
 req GET "posts/get.php?id=$PID" "$TB"
-check "get post as another user: liked_by_viewer false" 200 "$CODE" "$BODY" '"like_count":1,"comment_count":0,"liked_by_viewer":false'
+check "get post as another user: liked_by_viewer false" 200 "$CODE" "$BODY" '"like_count":1,"comment_count":0,"repost_count":0,"liked_by_viewer":false'
 req GET "posts/get.php?id=$PID" "garbage.token.x"
 check "get post with bad token still works (optional auth)" 200 "$CODE" "$BODY" '"liked_by_viewer":false'
 curl -s -o /dev/null -X POST $B/likes/toggle.php -H "Authorization: Bearer $TA" -H "Content-Type: application/json" --data-binary "{\"post_id\":$PID}"
@@ -290,6 +290,116 @@ req DELETE "posts/delete.php?id=$BM1" "$TB"
 check "bob deletes a post alice saved" 200 "$CODE" "$BODY" '"deleted":true'
 req GET "bookmarks/list.php?page=2" "$TA"
 N3=$(echo "$BODY" | grep -o '"id":[0-9]*,"content"' | wc -l); ! echo "$BODY" | grep -q "\"id\":$BM1," && [ "$N3" = 1 ] && { echo "PASS  deleted post dropped from alice's saved list (cascade)"; pass=$((pass+1)); } || { echo "FAIL  deleted post still saved (page 2 has $N3)"; fail=$((fail+1)); }
+
+# --- reposts: reposts/toggle.php, and reposts in the home and "For you" feeds
+# jcheck <name> <php code> [args]: the code sees $d (decoded $BODY) and $argv,
+# and echoes "ok" on success, anything else as the failure detail.
+jcheck() {
+  local name="$1" code="$2"; shift 2
+  local r; r=$(printf '%s' "$BODY" | "$PHP" -r '$d = json_decode(stream_get_contents(STDIN), true); $key = fn ($p) => $p["id"] . ":" . ($p["reposted_by"]["id"] ?? 0); '"$code" "$@")
+  [ "$r" = ok ] && { echo "PASS  $name"; pass=$((pass+1)); } || { echo "FAIL  $name: ${r:0:300}"; fail=$((fail+1)); }
+}
+reg() { # username display_name -> "token id"
+  local out; out=$(printf '%s' "{\"username\":\"$1\",\"email\":\"$1@x.io\",\"password\":\"password1\",\"display_name\":\"$2\"}" \
+    | curl -s -X POST "$B/auth/register.php" -H "Content-Type: application/json" --data-binary @-)
+  echo "$(tok "$out") $(echo "$out" | sed 's/.*"user":{"id":\([0-9]*\).*/\1/')"
+}
+read -r TO IDO <<< "$(reg olga 'Olga Original')"
+read -r TR IDR <<< "$(reg rita 'Rita Reposter')"
+read -r TF IDF <<< "$(reg fred 'Fred Follower')"
+req POST posts/create.php "$TO" '{"content":"olga older post"}'; OP1=$(echo "$BODY" | sed 's/.*"post":{"id":\([0-9]*\).*/\1/')
+req POST posts/create.php "$TO" '{"content":"olga newer post"}'; OP2=$(echo "$BODY" | sed 's/.*"post":{"id":\([0-9]*\).*/\1/')
+check "(setup) olga, rita and fred registered; olga has 2 posts" 201 "$CODE" "$BODY" 'olga newer post'
+curl -s -o /dev/null -X POST "$B/likes/toggle.php" -H "Authorization: Bearer $TA" -H "Content-Type: application/json" --data-binary "{\"post_id\":$OP1}"
+sleep 1.2   # timestamps are whole seconds: reposts below are strictly newer than both posts
+
+req POST reposts/toggle.php "" "{\"post_id\":$OP1}"
+check "repost without login -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+req POST reposts/toggle.php "$TR" '{"post_id":999999}'
+check "repost missing post -> 404" 404 "$CODE" "$BODY" 'Post not found'
+req POST reposts/toggle.php "$TR" '{}'
+check "repost without post_id -> 400" 400 "$CODE" "$BODY" 'post_id'
+req GET reposts/toggle.php "$TR"
+check "repost with GET -> 405" 405 "$CODE" "$BODY"
+
+req POST reposts/toggle.php "$TR" "{\"post_id\":$OP1}"
+check "rita reposts olga's older post" 200 "$CODE" "$BODY" '^\{"reposted":true,"repost_count":1\}$'
+req POST reposts/toggle.php "$TF" "{\"post_id\":$OP1}"
+check "fred reposts it too: count 2" 200 "$CODE" "$BODY" '^\{"reposted":true,"repost_count":2\}$'
+req POST reposts/toggle.php "$TF" "{\"post_id\":$OP1}"
+check "fred undoes his repost: count back to 1" 200 "$CODE" "$BODY" '^\{"reposted":false,"repost_count":1\}$'
+
+# Two simultaneous toggles by one user must never leave a duplicate row.
+for i in 1 2; do curl -s -o /dev/null -X POST "$B/reposts/toggle.php" -H "Authorization: Bearer $TF" -H "Content-Type: application/json" --data-binary "{\"post_id\":$OP2}" & done; wait
+req GET "posts/get.php?id=$OP2" "$TF"
+RC=$(echo "$BODY" | sed 's/.*"repost_count":\([0-9]*\).*/\1/')
+{ [ "$RC" = 0 ] || [ "$RC" = 1 ]; } && { echo "PASS  concurrent double-toggle left fred with at most one repost (count $RC)"; pass=$((pass+1)); } || { echo "FAIL  concurrent repost toggles produced count $RC"; fail=$((fail+1)); }
+echo "$BODY" | grep -q '"reposted_by_viewer":true' && curl -s -o /dev/null -X POST "$B/reposts/toggle.php" -H "Authorization: Bearer $TF" -H "Content-Type: application/json" --data-binary "{\"post_id\":$OP2}"
+
+req POST reposts/toggle.php "$TO" "{\"post_id\":$OP2}"
+check "olga can repost her own post" 200 "$CODE" "$BODY" '^\{"reposted":true,"repost_count":1\}$'
+req POST reposts/toggle.php "$TO" "{\"post_id\":$OP2}"
+check "olga undoes it" 200 "$CODE" "$BODY" '^\{"reposted":false,"repost_count":0\}$'
+
+# Counts and viewer flags on a single post (never a repost entry there).
+req GET "posts/get.php?id=$OP1" "$TR"
+check "get.php: repost_count and reposted_by_viewer for the reposter" 200 "$CODE" "$BODY" '"repost_count":1,"liked_by_viewer":false,"bookmarked_by_viewer":false,"reposted_by_viewer":true,.*"reposted_by":null\}\}$'
+req GET "posts/get.php?id=$OP1" "$TF"
+check "get.php: reposted_by_viewer false for someone who didn't repost" 200 "$CODE" "$BODY" '"reposted_by_viewer":false'
+req GET "posts/get.php?id=$OP1"
+check "get.php: reposted_by_viewer false for guests" 200 "$CODE" "$BODY" '"repost_count":1,.*"reposted_by_viewer":false'
+
+# Fred follows rita (not olga): rita's repost reaches his home feed, labelled,
+# with the original post's content, author and counts.
+curl -s -o /dev/null -X POST "$B/follow/toggle.php" -H "Authorization: Bearer $TF" -H "Content-Type: application/json" --data-binary "{\"user_id\":$IDR}"
+curl -s "$B/posts/get.php?id=$OP1" -H "Authorization: Bearer $TF" > "$SCR/op1.json"
+req GET "posts/list.php?feed=home" "$TF"
+jcheck "home feed: rita's repost reaches her follower, with reposted_by = rita" '
+  $p = $d["posts"][0] ?? null; $orig = json_decode(file_get_contents($argv[1]), true)["post"];
+  if (!$p || $p["id"] !== (int) $argv[2]) { echo "first entry is not the reposted post: ", json_encode($p); exit; }
+  if ($p["reposted_by"] !== ["id" => (int) $argv[3], "username" => "rita", "display_name" => "Rita Reposter"]) { echo "reposted_by: ", json_encode($p["reposted_by"]); exit; }
+  $p["reposted_by"] = null;
+  echo $p === $orig ? "ok" : "content/author/counts differ from the original: " . json_encode($p);' "$SCR/op1.json" "$OP1" "$IDR"
+jcheck "home feed: only the repost (olga isn't followed, her other post stays out)" '
+  echo array_map($key, $d["posts"]) === [$argv[1] . ":" . $argv[2]] ? "ok" : json_encode(array_map($key, $d["posts"]));' "$OP1" "$IDR"
+check "home feed: repost keeps the original's like count" 200 "$CODE" "$BODY" '"like_count":1,'
+req GET "posts/list.php?feed=home" "$TR"
+jcheck "home feed: the reposter sees her own repost" '
+  $p = $d["posts"][0] ?? null; echo ($p && $p["id"] === (int) $argv[1] && ($p["reposted_by"]["username"] ?? "") === "rita") ? "ok" : json_encode($p);' "$OP1"
+req GET "posts/list.php?feed=user&user_id=$IDR"
+check "profile feed: only the user's own posts (rita has none)" 200 "$CODE" "$BODY" '^\{"posts":\[\],"has_more":false\}$'
+
+# "For you": ordered by when each entry happened. The repost (newest) leads,
+# then olga's newer post, then the older post itself, unlabelled.
+req GET "posts/list.php?feed=all"
+jcheck "For you: repost first (by repost time), then the newer post, then the original" '
+  $keys = array_map($key, $d["posts"]);
+  $r = array_search($argv[1] . ":" . $argv[3], $keys, true); $n = array_search($argv[2] . ":0", $keys, true); $o = array_search($argv[1] . ":0", $keys, true);
+  echo ($r === 0 && $n === 1 && $o === 2) ? "ok" : "positions repost=" . var_export($r, true) . " newer=" . var_export($n, true) . " original=" . var_export($o, true);' "$OP1" "$OP2" "$IDR"
+jcheck "For you: the original entry has reposted_by null" '
+  foreach ($d["posts"] as $p) if ($p["id"] === (int) $argv[1] && $p["reposted_by"] === null) { echo "ok"; exit; } echo "missing";' "$OP1"
+# Across all pages: every entry once, one entry per repost.
+PAGE=1; : > "$SCR/allpages.txt"
+while :; do curl -s "$B/posts/list.php?feed=all&page=$PAGE" >> "$SCR/allpages.txt"; echo >> "$SCR/allpages.txt"; tail -2 "$SCR/allpages.txt" | grep -q '"has_more":true' || break; PAGE=$((PAGE+1)); done
+ENTRIES=$("$PHP" -r '$keys = []; $reposts = 0; foreach (file($argv[1], FILE_IGNORE_NEW_LINES) as $l) foreach (json_decode($l, true)["posts"] ?? [] as $p) { $keys[] = $p["id"] . ":" . ($p["reposted_by"]["id"] ?? 0); $reposts += $p["reposted_by"] ? 1 : 0; }
+  echo count($keys) === count(array_unique($keys)) && $reposts === 1 ? "ok" : "entries " . count($keys) . ", unique " . count(array_unique($keys)) . ", reposts $reposts";' "$SCR/allpages.txt")
+[ "$ENTRIES" = ok ] && { echo "PASS  For you pages ($PAGE): no duplicate entries, exactly one repost entry"; pass=$((pass+1)); } || { echo "FAIL  For you pages: $ENTRIES"; fail=$((fail+1)); }
+
+# Undoing the repost takes it out of the feeds.
+req POST reposts/toggle.php "$TR" "{\"post_id\":$OP1}"
+check "rita undoes her repost" 200 "$CODE" "$BODY" '^\{"reposted":false,"repost_count":0\}$'
+req GET "posts/list.php?feed=home" "$TF"
+check "home feed: repost gone once undone" 200 "$CODE" "$BODY" '^\{"posts":\[\],"has_more":false\}$'
+req GET "posts/list.php?feed=all"
+jcheck "For you: no repost entries once undone" '
+  foreach ($d["posts"] as $p) if ($p["reposted_by"] !== null) { echo "still has ", json_encode($p["reposted_by"]); exit; } echo "ok";'
+
+# Deleting a post removes its reposts (ON DELETE CASCADE).
+curl -s -o /dev/null -X POST "$B/reposts/toggle.php" -H "Authorization: Bearer $TR" -H "Content-Type: application/json" --data-binary "{\"post_id\":$OP1}"
+req DELETE "posts/delete.php?id=$OP1" "$TO"
+check "olga deletes the reposted post" 200 "$CODE" "$BODY" '"deleted":true'
+req GET "posts/list.php?feed=home" "$TF"
+check "deleted post's repost gone from the follower's feed (cascade)" 200 "$CODE" "$BODY" '^\{"posts":\[\],"has_more":false\}$'
 
 # --- image uploads: posts/upload_image.php and users/upload_avatar.php
 FX="$SCR/fixtures"; mkdir -p "$FX"

@@ -1,7 +1,7 @@
 import { chromium } from 'playwright-core';
 import { API, APP, LAUNCH, OUT } from './config.mjs';
 
-// Post actions: who sees delete, the "⋯" menu, share (copy link) and
+// Post actions: who sees delete, the "⋯" menu, share (copy link), reposts and
 // bookmarks (save, Saved page). Needs an empty test database (run-all.sh).
 
 let failed = 0;
@@ -52,8 +52,10 @@ async function as(user, { viewport = { width: 1400, height: 900 }, clipboard = f
 }
 const postCard = (page, text) => page.locator('.center .post', { hasText: text });
 const actionLabels = (card) => card.locator('.post-actions button').evaluateAll((els) => els.map((b) => b.getAttribute('aria-label')));
+// comments, repost, likes, bookmark, share
 const rowOrderOk = (labels) =>
-  labels.length === 4 && /comments$/.test(labels[0]) && labels[1] === 'Copy link to post' && /^(Like|Unlike)/.test(labels[2]) && /^(Save post|Remove from saved)$/.test(labels[3]);
+  labels.length === 5 && /comments$/.test(labels[0]) && /^(Repost|Undo repost) \(\d+\)$/.test(labels[1]) && /^(Like|Unlike)/.test(labels[2])
+  && /^(Save post|Remove from saved)$/.test(labels[3]) && labels[4] === 'Copy link to post';
 
 // ---------- Delete is visible only to the author ----------
 try {
@@ -78,7 +80,7 @@ try {
   await postCard(g, `Ann's post ${tag}`).waitFor();
   expect((await g.getByRole('button', { name: 'More options' }).count()) === 0 && (await g.getByText('Delete post').count()) === 0, 'guests see no ⋯ / delete on any post');
   const labels = await actionLabels(postCard(g, `Ann's post ${tag}`));
-  expect(rowOrderOk(labels), `guest action row: comments, share, likes, bookmark (${labels.join(' | ')})`);
+  expect(rowOrderOk(labels), `guest action row: comments, repost, likes, bookmark, share (${labels.join(' | ')})`);
   await g.context().close();
 } catch (e) { failed++; console.log(`✗ delete visibility: stopped early: ${firstLine(e)}`); }
 
@@ -89,7 +91,7 @@ try {
   const card = postCard(a, `Ann's second post ${tag}`);
   await card.waitFor();
   const labels = await actionLabels(card);
-  expect(rowOrderOk(labels), `author action row: comments, share, likes, bookmark, no delete (${labels.join(' | ')})`);
+  expect(rowOrderOk(labels), `author action row: comments, repost, likes, bookmark, share, no delete (${labels.join(' | ')})`);
   expect((await postCard(a, `Ben's post ${tag}`).getByRole('button', { name: 'More options' }).count()) === 0, "Ann sees no ⋯ on Ben's post");
 
   const more = card.getByRole('button', { name: 'More options' });
@@ -205,11 +207,84 @@ try {
   await b.context().close();
 } catch (e) { failed++; console.log(`✗ bookmarks: stopped early: ${firstLine(e)}`); }
 
+// ---------- Reposts ----------
+// Ben reposts Ann's post. Cal follows only Ben, so the post reaches Cal's
+// "Following" feed through the repost, labelled "Ben Reader reposted".
+try {
+  const cal = await register(`cal_${tag}`, 'Cal Follower');
+  await fetch(`${API}/follow/toggle.php`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cal.token}` }, body: JSON.stringify({ user_id: ben.user.id }) });
+
+  // Guests are sent to log in.
+  const g = await as(null);
+  await g.goto(`${APP}/`);
+  await postCard(g, `Ann's post ${tag}`).locator('.action.repost').click();
+  await g.getByText('Log in to repost.').waitFor({ timeout: 5000 }).catch(() => {});
+  expect(g.url() === `${APP}/login` && (await g.getByText('Log in to repost.').isVisible()), 'guest: repost -> /login with "Log in to repost."');
+  await g.context().close();
+
+  const b = await as(ben);
+  await b.goto(`${APP}/`);
+  const card = postCard(b, `Ann's post ${tag}`);
+  await card.waitFor();
+  const btn = card.locator('.action.repost');
+  expect((await btn.getAttribute('aria-pressed')) === 'false' && (await btn.innerText()).trim() === '', 'repost button starts un-pressed, no count');
+  const mutedColor = await btn.evaluate((el) => getComputedStyle(el).color);
+  await btn.click();
+  await card.locator('.action.repost.is-reposted', { hasText: '1' }).waitFor({ timeout: 5000 });
+  const onColor = await btn.evaluate((el) => getComputedStyle(el).color);
+  expect((await btn.getAttribute('aria-pressed')) === 'true' && (await btn.getAttribute('aria-label')) === 'Undo repost (1)' && onColor !== mutedColor,
+    `reposting highlights the icon (${mutedColor} -> ${onColor}) and shows the count (1)`);
+  await card.screenshot({ path: `${OUT}/a4-reposted.png` });
+
+  // After a reload the feed has the repost (newest, labelled "You reposted")
+  // and the original. Both show the reposted state and stay in sync.
+  await b.reload();
+  const entries = b.locator('.center .post', { hasText: `Ann's post ${tag}` });
+  await entries.nth(1).waitFor({ timeout: 5000 });
+  expect((await entries.count()) === 2, 'For you: the post shows as the repost and as the original');
+  expect((await b.locator('.center .post').first().locator('.repost-label').innerText()) === 'You reposted', 'For you: the repost is the newest entry, labelled "You reposted" for the reposter');
+  expect((await entries.locator('.action.repost.is-reposted', { hasText: '1' }).count()) === 2, 'reposted state persists after reload (both entries)');
+  await entries.nth(0).locator('.action.repost').click();
+  await b.waitForFunction((text) => [...document.querySelectorAll('.center .post')].filter((p) => p.textContent.includes(text))
+    .every((p) => !p.querySelector('.action.repost.is-reposted')), `Ann's post ${tag}`, { timeout: 5000 });
+  const undone = await (await fetch(`${API}/posts/get.php?id=${annPost.id}`, { headers: { Authorization: `Bearer ${ben.token}` } })).json();
+  expect(undone.post.reposted_by_viewer === false && undone.post.repost_count === 0, 'undoing the repost updates both entries and the server (count 0)');
+  await entries.nth(1).locator('.action.repost').click();
+  await entries.nth(0).locator('.action.repost.is-reposted', { hasText: '1' }).waitFor({ timeout: 5000 });
+  expect(true, 'reposting again from the other entry updates both');
+  await b.context().close();
+
+  // Cal's "Following" feed: the repost, labelled with Ben, content still Ann's.
+  const c = await as(cal);
+  await c.goto(`${APP}/`);
+  await c.getByRole('tab', { name: 'Following' }).click();
+  const repostCard = c.locator('.center .post.has-repost-label', { hasText: `Ann's post ${tag}` });
+  await repostCard.waitFor({ timeout: 5000 });
+  const label = repostCard.locator('.repost-label');
+  expect((await label.innerText()) === 'Ben Reader reposted', `follower's feed: labelled "${await label.innerText()}"`);
+  expect((await label.locator('a').getAttribute('href')) === `/u/${ben.user.username}`, 'label links to the reposter\'s profile');
+  expect((await repostCard.locator('.post-meta .name').innerText()) === 'Ann Author' && (await repostCard.locator('.post-text').innerText()) === `Ann's post ${tag}`,
+    'repost shows the original author and content');
+  const firstText = await c.locator('.center .post .post-text').first().innerText();
+  expect(firstText === `Ann's post ${tag}`, `follower's feed: the repost is ordered by repost time, ahead of Ben's older post (first: ${firstText})`);
+  await c.screenshot({ path: `${OUT}/a5-repost-label.png`, clip: { x: 360, y: 0, width: 620, height: 420 } });
+  await label.locator('a').click();
+  await c.waitForURL(`${APP}/u/${ben.user.username}`);
+  expect(true, 'clicking the label opens the reposter\'s profile');
+
+  // The single post page shows the original only, no repost label.
+  await c.goto(`${APP}/post/${annPost.id}`);
+  await c.locator('.post-detail .action.repost', { hasText: '1' }).waitFor({ timeout: 5000 });
+  expect((await c.locator('.repost-label').count()) === 0, 'post page: no repost label, repost count shown (1)');
+  await c.context().close();
+} catch (e) { failed++; console.log(`✗ reposts: stopped early: ${firstLine(e)}`); }
+
 // ---------- Action row spans the full width, evenly spaced ----------
 // Measures the rendered icons: equal intervals between them, the first lined
 // up with the post text, the row reaching the card's right edge, no overflow.
 // Checked on the feed, the single post page and the Saved page, at desktop
-// and phone widths, with non-zero counts showing.
+// and phone widths, with non-zero counts showing. On the feed the first card
+// is Ben's repost, so the row is also checked under a repost label.
 async function rowLayout(card) {
   return card.evaluate((el) => {
     const text = el.querySelector('.post-text').getBoundingClientRect();
@@ -226,8 +301,8 @@ async function rowLayout(card) {
 }
 function checkRow(label, m) {
   const gaps = m.iconLefts.slice(1).map((x, i) => x - m.iconLefts[i]);
-  const even = gaps.length === 3 && Math.max(...gaps) - Math.min(...gaps) <= 2;
-  expect(even, `${label}: 4 icons evenly spaced (intervals ${gaps.map((g) => g.toFixed(0)).join(', ')}px)`);
+  const even = gaps.length === 4 && Math.max(...gaps) - Math.min(...gaps) <= 2;
+  expect(even, `${label}: 5 icons evenly spaced (intervals ${gaps.map((g) => g.toFixed(0)).join(', ')}px)`);
   expect(Math.abs(m.iconLefts[0] - m.textLeft) <= 2, `${label}: first icon lines up with the post text (${(m.iconLefts[0] - m.textLeft).toFixed(1)}px)`);
   expect(m.lastButtonRight >= m.bodyRight - 1 && m.rowWidth >= m.bodyWidth, `${label}: row reaches the right edge of the post (row ${m.rowWidth.toFixed(0)}px of ${m.bodyWidth.toFixed(0)}px)`);
   expect(!m.overflow, `${label}: no horizontal overflow`);
@@ -249,6 +324,7 @@ try {
       const card = p.locator(selector, { hasText: `Ann's post ${tag}` }).first();
       await card.waitFor({ timeout: 5000 });
       await card.locator('.action.like', { hasText: '1' }).waitFor({ timeout: 5000 });
+      await card.locator('.action.repost', { hasText: '1' }).waitFor({ timeout: 5000 }); // Ben's repost, above
       checkRow(`${size} ${where}`, await rowLayout(card));
       await card.screenshot({ path: `${OUT}/r-${size}-${where.replace(' ', '-')}.png` });
     }

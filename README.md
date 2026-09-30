@@ -31,6 +31,7 @@ CodeAlpha_SocialMediaPlatform/
 │   │   ├── comments/    # create.php, list.php, delete.php
 │   │   ├── likes/       # toggle.php
 │   │   ├── bookmarks/   # toggle.php, list.php
+│   │   ├── reposts/     # toggle.php
 │   │   └── follow/      # toggle.php, followers.php
 │   ├── database/
 │   │   └── schema.sql
@@ -56,9 +57,9 @@ CodeAlpha_SocialMediaPlatform/
 mysql -u root -p < backend/database/schema.sql
 ```
 
-This creates the `codealpha_social` database and its six tables. Every statement is
+This creates the `codealpha_social` database and its seven tables. Every statement is
 `CREATE … IF NOT EXISTS`, so re-running it on an existing database only adds tables that
-are missing (e.g. `bookmarks`) and never touches existing data.
+are missing (e.g. `bookmarks`, `reposts`) and never touches existing data.
 
 **2. Backend config.** Copy `backend/config/local.example.php` to `backend/config/local.php`
 and set your MySQL password and a long random `JWT_SECRET`. `local.php` is gitignored, so
@@ -98,8 +99,11 @@ they return 401 if the token is invalid or expired, **or if its account no longe
 errors are always JSON too, never an HTML error page.
 
 Every post in a response has the same shape: `{ id, content, image_url, created_at,
-like_count, comment_count, liked_by_viewer, bookmarked_by_viewer, author: { id, username,
-display_name, avatar_url } }`. The two `_by_viewer` flags are `false` for guests.
+like_count, comment_count, repost_count, liked_by_viewer, bookmarked_by_viewer,
+reposted_by_viewer, author: { id, username, display_name, avatar_url }, reposted_by }`.
+The three `_by_viewer` flags are `false` for guests. `reposted_by` is `{ id, username,
+display_name }` when a feed entry is there because someone reposted it, otherwise `null`;
+everything else is always the original post's.
 
 | Method | Endpoint | Auth | Returns |
 |---|---|---|---|
@@ -112,7 +116,7 @@ display_name, avatar_url } }`. The two `_by_viewer` flags are `false` for guests
 | GET | `users/suggestions.php?limit=` | ✓ | `{ users, has_other_users }`: people you don't follow yet, and whether anyone else has joined |
 | POST | `posts/create.php` | ✓ | `{ post }`. Needs `content` (up to 1000 chars), an `image_url` (http(s), up to 500 chars), or both |
 | POST | `posts/upload_image.php` (multipart, field `image`) | ✓ | `201 { url }` for a real JPEG, PNG, GIF or WebP up to 5 MB (type checked from the contents, full decode); 413 if larger, 415 if not a supported image. Saved with a random name in `backend/uploads/posts/`; send the URL as `image_url` to `posts/create.php` |
-| GET | `posts/list.php?feed=home\|user\|all&user_id=&page=` | home: ✓ | `{ posts, has_more }`. `all` = everyone's posts ("For you", public); `user` needs `user_id`; other values → 400 |
+| GET | `posts/list.php?feed=home\|user\|all&user_id=&page=` | home: ✓ | `{ posts, has_more }`. `all` = everyone's posts and reposts ("For you", public); `home` = posts and reposts by you and people you follow; `user` (needs `user_id`) = that user's own posts only; other values → 400. Newest first, by the post's or the repost's time, so a post can appear once as itself and once per repost |
 | GET | `posts/get.php?id=` | optional | `{ post }`: same shape as a `posts/list.php` item |
 | DELETE | `posts/delete.php?id=` | ✓ owner | `{ deleted }` |
 | POST | `comments/create.php` | ✓ | `{ comment }` |
@@ -121,6 +125,7 @@ display_name, avatar_url } }`. The two `_by_viewer` flags are `false` for guests
 | POST | `likes/toggle.php` | ✓ | `{ liked, like_count }` |
 | POST | `bookmarks/toggle.php` | ✓ | `{ bookmarked, bookmark_count }`. Takes `post_id`; 404 if the post doesn't exist |
 | GET | `bookmarks/list.php?page=` | ✓ | `{ posts, has_more }`: your saved posts, most recently saved first, 20 per page, same shape as feed items |
+| POST | `reposts/toggle.php` | ✓ | `{ reposted, repost_count }`. Takes `post_id`; 404 if the post doesn't exist. Your own posts can be reposted |
 | POST | `follow/toggle.php` | ✓ | `{ following, follower_count }` |
 | GET | `follow/followers.php?user_id=&type=followers\|following` | optional | `{ users }` |
 
@@ -159,9 +164,11 @@ create test users and posts in your real database.
   `upload` (photo picker, preview, uploading state, remove, post and profile photo, and
   rejection of non-images and files over 5 MB), `regressions` (the profile, composer,
   sidebar-post and profile-photo bugs, including a session whose account was deleted), and
-  `actions` (delete only visible to a post's author, the "⋯" menu, share / copy link, and
-  bookmarks with the Saved page, and the action row evenly spaced across the full width on
-  the feed, post page and Saved page at desktop and phone widths).
+  `actions` (delete only visible to a post's author, the "⋯" menu, share / copy link,
+  bookmarks with the Saved page, reposts (toggle, highlight and count, the "… reposted"
+  label in a follower's feed, no label on the post page), and the five-icon action row
+  evenly spaced across the full width on the feed, post page and Saved page at desktop and
+  phone widths).
 
 ## Internship Submission Checklist
 
