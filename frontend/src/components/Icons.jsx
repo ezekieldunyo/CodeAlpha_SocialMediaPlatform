@@ -37,8 +37,11 @@ export const UserIcon = (p) => (
 export const MoreIcon = (p) => (
   <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M8 12h.01M12 12h.01M16 12h.01" strokeWidth="2.6" /></Icon>
 );
-export const FeatherIcon = (p) => (
-  <Icon {...p}><path d="M20 4c-7 0-12 5-12 12v4" /><path d="M8 16h6c4 0 6-5 6-12" /><path d="M4 20l4-4" /></Icon>
+export const SearchIcon = (p) => (
+  <Icon {...p}><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></Icon>
+);
+export const PlusIcon = (p) => (
+  <Icon {...p}><path d="M12 5v14M5 12h14" /></Icon>
 );
 export const HeartIcon = (p) => (
   <Icon {...p}><path d="M12 20s-7.5-4.6-9.2-9.3C1.7 7.4 3.8 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.4 0 5.5 3.4 4.4 6.7C19.5 15.4 12 20 12 20z" /></Icon>

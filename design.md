@@ -44,15 +44,20 @@ Desktop (>1024px)
 
 Mobile (<640px)
 ┌─────────────────────────┐
-│  logo            avatar  │
+│  logo            avatar  │  ← avatar opens: profile, Saved, log out
 ├─────────────────────────┤
 │  [composer]               │
 │  post card                 │
-│  post card                 │
+│  post card            (+) │  ← floating "New post" button
 ├─────────────────────────┤
-│  Home   Profile   Logout  │  ← bottom bar
+│  🏠     🔍     🔔     ✉   │  ← bottom bar
 └─────────────────────────┘
 ```
+
+The bottom bar is icon-only, like X's: Home, Search (the Explore page), Notifications
+and Messages, in four equal cells across the full width. Notifications shows a small
+count badge when something is unread. The floating (+) button is the phone's version
+of the sidebar's Post button and opens the same composer.
 
 - Left-aligned content throughout (no centered text blocks) — matches a scanning, feed-based reading pattern.
 - Post cards separated by a single 1px `--color-line` rule rather than boxed cards with shadows — keeps the feed calm and print-like rather than "SaaS card kit."

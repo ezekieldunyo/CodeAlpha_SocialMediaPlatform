@@ -10,12 +10,13 @@ import {
   BellIcon,
   BookmarkIcon,
   ExploreIcon,
-  FeatherIcon,
   GradientDefs,
   HomeIcon,
   LogoutIcon,
   MailIcon,
   MoreIcon,
+  PlusIcon,
+  SearchIcon,
   UserIcon,
 } from './Icons.jsx';
 
@@ -44,9 +45,8 @@ function useLogOut() {
   };
 }
 
-function MoreMenu() {
-  const logOut = useLogOut();
-  const { user } = useAuth();
+// Open/close state for a dropdown that closes on any click outside it.
+function useDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -57,25 +57,38 @@ function MoreMenu() {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
+  return { open, setOpen, ref };
+}
+
+// Profile, Saved and Log out: the sidebar's More menu on desktop, the header
+// avatar's menu on phones.
+function AccountMenuItems({ onClose }) {
+  const logOut = useLogOut();
+  const { user } = useAuth();
+  return (
+    <div className="menu" role="menu">
+      <Link to={`/u/${user.username}`} className="menu-item" role="menuitem" onClick={onClose}>
+        <UserIcon size={18} /> View profile
+      </Link>
+      <Link to="/saved" className="menu-item" role="menuitem" onClick={onClose}>
+        <BookmarkIcon size={18} /> Saved
+      </Link>
+      <button className="menu-item" role="menuitem" onClick={logOut}>
+        <LogoutIcon size={18} /> Log out @{user.username}
+      </button>
+    </div>
+  );
+}
+
+function MoreMenu() {
+  const { open, setOpen, ref } = useDropdown();
   return (
     <div className="more" ref={ref}>
       <button className="nav-item" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         <MoreIcon size={20} />
         <span className="nav-label">More</span>
       </button>
-      {open && (
-        <div className="menu" role="menu">
-          <Link to={`/u/${user.username}`} className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
-            <UserIcon size={18} /> View profile
-          </Link>
-          <Link to="/saved" className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
-            <BookmarkIcon size={18} /> Saved
-          </Link>
-          <button className="menu-item" role="menuitem" onClick={logOut}>
-            <LogoutIcon size={18} /> Log out @{user.username}
-          </button>
-        </div>
-      )}
+      {open && <AccountMenuItems onClose={() => setOpen(false)} />}
     </div>
   );
 }
@@ -118,7 +131,7 @@ function LeftNav({ onCompose }) {
       <MoreMenu />
 
       <button className="btn btn-primary btn-post" onClick={onCompose}>
-        <FeatherIcon size={20} className="btn-post-icon" />
+        <PlusIcon size={22} strokeWidth={2.4} className="btn-post-icon" />
         <span className="nav-label">Post</span>
       </button>
 
@@ -133,48 +146,53 @@ function LeftNav({ onCompose }) {
   );
 }
 
-// Mobile chrome per design.md §1.3: logo left / avatar right, bottom bar with
-// Home, Explore (the only way to find people once the rail is hidden),
-// Profile and Log out.
+// Mobile chrome per design.md §1.3: logo left, avatar right. The avatar opens
+// the account menu (profile, Saved, log out), which the bottom bar doesn't carry.
 function MobileHeader() {
   const { user } = useAuth();
+  const { open, setOpen, ref } = useDropdown();
   return (
     <header className="mobile-header">
       <Brand size={28} />
       {user && (
-        <Link to={`/u/${user.username}`} aria-label="Your profile">
-          <Avatar user={user} size={32} />
-        </Link>
+        <div className="more mobile-account" ref={ref}>
+          <button className="mobile-avatar" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label="Account menu">
+            <Avatar user={user} size={32} />
+          </button>
+          {open && <AccountMenuItems onClose={() => setOpen(false)} />}
+        </div>
       )}
     </header>
   );
 }
 
+// Unread count for the Notifications badge. Notifications aren't built yet
+// (requirement.md §3), so there is never anything unread and no badge shows;
+// wire this to the real count once they exist.
+const UNREAD_NOTIFICATIONS = 0;
+
+// X-style tab bar: icon-only, evenly spaced edge to edge. "Search" is the
+// Explore page, which is where people search. The label is for screen readers.
 function BottomBar() {
-  const { user } = useAuth();
-  const logOut = useLogOut();
   const items = [
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
-    { to: '/explore', label: 'Explore', icon: ExploreIcon },
-    { to: `/u/${user.username}`, label: 'Profile', icon: UserIcon },
+    { to: '/explore', label: 'Search', icon: SearchIcon },
+    { to: '/notifications', label: 'Notifications', icon: BellIcon, badge: UNREAD_NOTIFICATIONS },
+    { to: '/messages', label: 'Messages', icon: MailIcon },
   ];
 
   return (
     <nav className="bottom-bar" aria-label="Main">
-      {items.map(({ to, label, icon, end }) => (
-        <NavLink key={label} to={to} end={end} className="bottom-item">
+      {items.map(({ to, label, icon, end, badge }) => (
+        <NavLink key={label} to={to} end={end} className="bottom-item" aria-label={badge ? `${label} (${badge} unread)` : label}>
           {({ isActive }) => (
-            <>
-              <NavIcon icon={icon} isActive={isActive} size={22} />
-              {label}
-            </>
+            <span className="bottom-icon">
+              <NavIcon icon={icon} isActive={isActive} size={26} />
+              {badge > 0 && <span className="bottom-badge" aria-hidden="true">{badge > 99 ? '99+' : badge}</span>}
+            </span>
           )}
         </NavLink>
       ))}
-      <button className="bottom-item" onClick={logOut}>
-        <LogoutIcon size={22} />
-        Log out
-      </button>
     </nav>
   );
 }
@@ -222,8 +240,9 @@ export default function Layout() {
 
       {user ? (
         <>
+          {/* Phones only: the sidebar's Post button, which the phone layout hides. */}
           <button className="fab btn-primary" onClick={() => setComposing(true)} aria-label="New post">
-            <FeatherIcon size={24} />
+            <PlusIcon size={26} strokeWidth={2.4} />
           </button>
           <BottomBar />
         </>
