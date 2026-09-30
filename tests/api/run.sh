@@ -3,7 +3,7 @@
 # (it registers fixed usernames). Reset first with: php tests/reset-db.php --yes
 #
 #   API_URL  backend base URL   (default http://localhost:8000/api; Herd: http://backend.test/api)
-#   PHP      php binary, used to compare JSON (default: php on PATH)
+#   PHP      php binary, used to compare JSON and make upload fixtures (default: php on PATH)
 #
 # Prints PASS/FAIL per check; exits non-zero if anything fails.
 B="${API_URL:-http://localhost:8000/api}"
@@ -218,6 +218,75 @@ req GET "posts/get.php?id=$PID"
 check "get deleted post -> 404" 404 "$CODE" "$BODY" 'Post not found'
 req POST follow/toggle.php "$TA" "{\"user_id\":$IDB}"
 check "unfollow" 200 "$CODE" "$BODY" '"following":false,"follower_count":0'
+
+# --- image uploads: posts/upload_image.php and users/upload_avatar.php
+FX="$SCR/fixtures"; mkdir -p "$FX"
+"$PHP" "$(dirname "$0")/make-fixtures.php" "$FX" > /dev/null || { echo "FAIL  could not generate upload fixtures"; fail=$((fail+1)); }
+SITE="${B%/api}"   # backend root, where /uploads/ is served
+# upload <endpoint> <token> <file>. JSON escapes "/" as "\/"; BODY has that
+# undone so URL patterns below can use plain slashes.
+upload() {
+  local auth=(); [ -n "$2" ] && auth=(-H "Authorization: Bearer $2")
+  local out; out=$(curl -s -w $'\n%{http_code}' -X POST "$B/$1" "${auth[@]}" -F "image=@$3")
+  BODY=$(echo "$out" | sed '$d' | sed 's#\\/#/#g'); CODE=$(echo "$out" | tail -1)
+}
+url_of() { echo "$1" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p'; }
+
+for ext in png jpg gif webp; do
+  upload posts/upload_image.php "$TA" "$FX/real.$ext"
+  check "upload real .$ext -> 201, random name, .$ext" 201 "$CODE" "$BODY" "\"url\":\"https?:.*/uploads/posts/[0-9a-f]{32}\\.$ext\""
+done
+upload posts/upload_image.php "$TA" "$FX/real.png"; U1=$(url_of "$BODY")
+curl -s -D "$SCR/h.txt" -o "$SCR/served.png" "$U1"
+if cmp -s "$SCR/served.png" "$FX/real.png" && grep -qi "^content-type: image/png" "$SCR/h.txt"; then
+  echo "PASS  uploaded file is served back byte-for-byte as image/png"; pass=$((pass+1))
+else echo "FAIL  uploaded file not served correctly from $U1"; fail=$((fail+1)); fi
+upload posts/upload_image.php "$TA" "$FX/real.png"; U2=$(url_of "$BODY")
+[ -n "$U1" ] && [ "$U1" != "$U2" ] && { echo "PASS  same file uploaded twice gets two different names"; pass=$((pass+1)); } || { echo "FAIL  duplicate upload reused a name ($U1)"; fail=$((fail+1)); }
+
+# A real PNG named evil.php: the client's filename and extension must be
+# ignored. (PHP also strips any directory part from upload filenames.)
+cp "$FX/real.png" "$FX/evil.php"
+upload posts/upload_image.php "$TA" "$FX/evil.php"
+check "client filename evil.php ignored: saved under a random .png name" 201 "$CODE" "$BODY" '/uploads/posts/[0-9a-f]{32}\.png"'
+EVIL=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/evil.php"); EVIL2=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/uploads/evil.php")
+[ "$EVIL" = 404 ] && [ "$EVIL2" = 404 ] && { echo "PASS  nothing written outside uploads/posts (evil.php: 404)"; pass=$((pass+1)); } || { echo "FAIL  evil.php reachable ($EVIL / $EVIL2)"; fail=$((fail+1)); }
+
+upload posts/upload_image.php "$TA" "$FX/big-under-limit.png"
+if [ "$CODE" = 413 ] && echo "$BODY" | grep -q 'maximum size is [0-4]'; then
+  echo "FAIL  4.7 MB image rejected: the server's PHP upload_max_filesize is below 5 MB ($BODY). Raise it (see README)."; fail=$((fail+1))
+else check "real 4.7 MB image (under the 5 MB limit) accepted" 201 "$CODE" "$BODY" '"url":'; fi
+upload posts/upload_image.php "$TA" "$FX/too-large.png"
+check "real image over 5 MB -> 413 with a clear message" 413 "$CODE" "$BODY" 'too large\. The maximum size is 5 MB\.'
+upload posts/upload_image.php "$TA" "$FX/not-an-image.png"
+check "text file named .png -> 415 (contents checked, not extension)" 415 "$CODE" "$BODY" "isn't a supported image"
+upload posts/upload_image.php "$TA" "$FX/fake-header.png"
+check "PNG header followed by junk -> 415 (full decode required)" 415 "$CODE" "$BODY" "isn't a supported image"
+upload posts/upload_image.php "$TA" "$FX/drawing.svg"
+check "SVG -> 415" 415 "$CODE" "$BODY" "isn't a supported image"
+upload posts/upload_image.php "$TA" "$FX/polyglot.gif"
+check "PHP script disguised as GIF -> 415" 415 "$CODE" "$BODY" "isn't a supported image"
+upload posts/upload_image.php "$TA" "$FX/empty.png"
+check "empty file -> 400" 400 "$CODE" "$BODY" 'empty'
+upload posts/upload_image.php "" "$FX/real.png"
+check "upload without login -> 401" 401 "$CODE" "$BODY"
+OUT=$(curl -s -w $'\n%{http_code}' -X POST "$B/posts/upload_image.php" -H "Authorization: Bearer $TA" -F "photo=@$FX/real.png")
+check "wrong form field -> 400" 400 "$(echo "$OUT" | tail -1)" "$(echo "$OUT" | sed '$d')" "field named 'image'"
+req GET posts/upload_image.php "$TA"
+check "upload with GET -> 405" 405 "$CODE" "$BODY"
+
+req POST posts/create.php "$TA" "{\"content\":\"post with an uploaded image\",\"image_url\":\"$U1\"}"
+check "create post with the uploaded image URL" 201 "$CODE" "$BODY" "\"image_url\":\"$(echo "$U1" | sed 's#/#\\\\/#g')\""
+
+upload users/upload_avatar.php "$TA" "$FX/real.jpg"
+check "avatar upload -> 201 under uploads/avatars" 201 "$CODE" "$BODY" '/uploads/avatars/[0-9a-f]{32}\.jpg"'
+AV=$(url_of "$BODY")
+upload users/upload_avatar.php "$TA" "$FX/not-an-image.png"
+check "avatar non-image -> 415" 415 "$CODE" "$BODY" "isn't a supported image"
+upload users/upload_avatar.php "$TA" "$FX/too-large.png"
+check "avatar over 5 MB -> 413" 413 "$CODE" "$BODY" 'maximum size is 5 MB'
+req PUT users/update_profile.php "$TA" "{\"avatar_url\":\"$AV\"}"
+check "save uploaded avatar via update_profile" 200 "$CODE" "$BODY" '"avatar_url":"http[^"]*uploads\\/avatars\\/[0-9a-f]{32}\.jpg"'
 
 # --- CORS
 H=$(curl -s -D - -o /dev/null -X OPTIONS $B/posts/create.php -H "Origin: http://127.0.0.1:5173")

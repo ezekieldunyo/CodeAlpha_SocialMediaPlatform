@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import useImageUpload from '../hooks/useImageUpload.js';
 import Avatar from './Avatar.jsx';
-import { ImageIcon } from './Icons.jsx';
+import ImagePicker from './ImagePicker.jsx';
+import { CloseIcon, ImageIcon } from './Icons.jsx';
 
 const MAX_LENGTH = 1000;
 
@@ -13,15 +15,14 @@ export const POST_CREATED_EVENT = 'wavelink:post-created';
 export default function Composer({ autoFocus = false, onPosted }) {
   const { user } = useAuth();
   const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [showImage, setShowImage] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const image = useImageUpload(api.uploadPostImage);
   const textRef = useRef(null);
 
   const trimmed = content.trim();
   const remaining = MAX_LENGTH - content.length;
-  const canPost = trimmed.length > 0 && remaining >= 0 && !busy;
+  const canPost = trimmed.length > 0 && remaining >= 0 && !busy && !image.uploading;
 
   function autoSize(el) {
     el.style.height = 'auto';
@@ -34,10 +35,10 @@ export default function Composer({ autoFocus = false, onPosted }) {
     setBusy(true);
     setError('');
     try {
-      const { post } = await api.createPost(trimmed, showImage ? imageUrl.trim() : '');
+      // The image is already uploaded; the post just references its URL.
+      const { post } = await api.createPost(trimmed, image.url);
       setContent('');
-      setImageUrl('');
-      setShowImage(false);
+      image.clear();
       if (textRef.current) textRef.current.style.height = 'auto';
       window.dispatchEvent(new CustomEvent(POST_CREATED_EVENT, { detail: post }));
       onPosted?.(post);
@@ -67,32 +68,29 @@ export default function Composer({ autoFocus = false, onPosted }) {
           autoFocus={autoFocus}
           aria-label="Post content"
         />
-        {showImage && (
-          <input
-            className="input composer-image-input"
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="Paste an image URL (https://…)"
-            aria-label="Image URL"
-          />
+        {image.preview && (
+          <div className={`composer-preview ${image.uploading ? 'is-uploading' : ''}`}>
+            <img src={image.preview} alt="Selected image preview" />
+            {image.uploading && (
+              <div className="upload-overlay" role="status">
+                <span className="spinner" aria-hidden="true" /> Uploading…
+              </div>
+            )}
+            <button type="button" className="preview-remove" onClick={image.clear} aria-label="Remove image">
+              <CloseIcon size={18} />
+            </button>
+          </div>
         )}
-        {error && <p className="form-error">{error}</p>}
+        {(error || image.error) && <p className="form-error" role="alert">{error || image.error}</p>}
         <div className="composer-actions">
-          <button
-            type="button"
-            className={`icon-btn accent ${showImage ? 'is-on' : ''}`}
-            onClick={() => setShowImage((v) => !v)}
-            aria-label="Attach image link"
-            aria-pressed={showImage}
-          >
+          <ImagePicker className="icon-btn accent" label="Add a photo" onPick={image.pick} disabled={busy}>
             <ImageIcon size={20} />
-          </button>
+          </ImagePicker>
           <span className={`char-count ${remaining < 0 ? 'over' : remaining < 50 ? 'near' : ''}`}>
             {content.length > 0 && remaining}
           </span>
           <button className="btn btn-primary" type="submit" disabled={!canPost}>
-            {busy ? 'Posting…' : 'Post'}
+            {busy ? 'Posting…' : image.uploading ? 'Uploading…' : 'Post'}
           </button>
         </div>
       </div>

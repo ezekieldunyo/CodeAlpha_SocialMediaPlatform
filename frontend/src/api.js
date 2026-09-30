@@ -28,14 +28,16 @@ async function request(path, { method = 'GET', body, query } = {}) {
   const headers = {};
   const token = tokenStore.get();
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // FormData (file uploads) sets its own multipart Content-Type with a boundary.
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
 
   let response;
   try {
     response = await fetch(url, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Could not reach the server. Is the backend running?');
@@ -49,10 +51,18 @@ async function request(path, { method = 'GET', body, query } = {}) {
     if (response.status === 401 && token) {
       window.dispatchEvent(new Event('wavelink:unauthorized'));
     }
-    throw new ApiError(response.status, data.error || `Request failed (${response.status}).`);
+    // A proxy or web server can reject an oversized upload before PHP runs, with no JSON body.
+    const fallback = response.status === 413 ? 'That file is too large.' : `Request failed (${response.status}).`;
+    throw new ApiError(response.status, data.error || fallback);
   }
 
   return data;
+}
+
+function imageForm(file) {
+  const form = new FormData();
+  form.append('image', file);
+  return form;
 }
 
 export const api = {
@@ -62,6 +72,7 @@ export const api = {
   getProfile: (username) => request('users/profile.php', { query: { username } }),
   updateProfile: (fields) => request('users/update_profile.php', { method: 'PUT', body: fields }),
   getSuggestions: (limit = 5) => request('users/suggestions.php', { query: { limit } }),
+  uploadAvatar: (file) => request('users/upload_avatar.php', { method: 'POST', body: imageForm(file) }),
 
   getPost: (id) => request('posts/get.php', { query: { id } }),
   listPosts: ({ feed, userId, page }) =>
@@ -69,6 +80,7 @@ export const api = {
   createPost: (content, imageUrl) =>
     request('posts/create.php', { method: 'POST', body: { content, image_url: imageUrl || undefined } }),
   deletePost: (id) => request('posts/delete.php', { method: 'DELETE', query: { id } }),
+  uploadPostImage: (file) => request('posts/upload_image.php', { method: 'POST', body: imageForm(file) }),
 
   listComments: (postId) => request('comments/list.php', { query: { post_id: postId } }),
   createComment: (postId, content) =>

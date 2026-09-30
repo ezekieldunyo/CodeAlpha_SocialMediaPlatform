@@ -10,11 +10,11 @@
 
 ### 1.2 Profiles
 - Every user has a profile: display name, username, bio, avatar, join date.
-- A user can view their own profile and edit display name, bio, and avatar.
+- A user can view their own profile and edit display name, bio, and avatar (a photo uploaded from their device).
 - A user can view another user's public profile, including their posts and follower/following counts.
 
 ### 1.3 Posts
-- A logged-in user can create a text post (optionally with one image).
+- A logged-in user can create a text post (optionally with one image, uploaded from their device: JPEG, PNG, GIF or WebP, up to 5 MB).
 - Posts show author, content, timestamp, like count, and comment count.
 - A user can delete their own posts.
 - The home feed shows posts from users the current user follows, newest first.
@@ -65,7 +65,9 @@
 | GET    | /api/users/profile.php?id= (or ?username=) | No  | View a profile          |
 | PUT    | /api/users/update_profile.php | Yes | Edit own profile        |
 | GET    | /api/users/suggestions.php    | Yes | "Who to follow": users the viewer doesn't follow yet, plus whether anyone else has joined ¹ |
+| POST   | /api/users/upload_avatar.php  | Yes | Upload a profile photo, returns its URL ⁵ |
 | POST   | /api/posts/create.php         | Yes | Create a post           |
+| POST   | /api/posts/upload_image.php   | Yes | Upload an image for a post, returns its URL ⁵ |
 | GET    | /api/posts/list.php?feed=home\|user\|all | Home feed: Yes · User and "For you" feeds: No | Home feed, a profile's posts, or "For you" (everyone's posts) ⁴ |
 | GET    | /api/posts/get.php?id=        | No  | View a single post (same shape as a feed item) ³ |
 | DELETE | /api/posts/delete.php         | Yes | Delete own post         |
@@ -80,5 +82,6 @@
 ² Required by §1.4 ("A user can delete their own comments") but missing from the original table.
 ³ Added for the `/post/:id` page. Public like profiles: guests read it; a logged-in viewer also gets `liked_by_viewer`.
 ⁴ `feed=all` was added for the "For you" tab (the default on the home page): the most recent posts from everyone, newest first, paginated like the other feeds. It is public, so logged-out visitors can read it; `feed=home` still requires login. Any other `feed` value returns 400.
+⁵ Image uploads replace pasting an image URL. Both endpoints take one file (`multipart/form-data`, field `image`) and accept only real JPEG, PNG, GIF or WebP images: the type is detected from the file's contents and the image must fully decode, so extensions are never trusted. Maximum 5 MB (413 over that), 415 for anything that isn't a supported image. Files get a random name in `backend/uploads/posts/` or `backend/uploads/avatars/`; the returned URL is then sent as `image_url` to `posts/create.php` or `avatar_url` to `users/update_profile.php`.
 
 Full request/response shapes are documented in the API table in `README.md`.

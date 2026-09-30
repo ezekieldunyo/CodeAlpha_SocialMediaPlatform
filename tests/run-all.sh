@@ -27,6 +27,7 @@ run "Browser: post page"  node e2e/post.mjs
 run "Browser: feed tabs"  node e2e/feed.mjs
 run "Browser: smoke"      node e2e/smoke.mjs
 run "Browser: logo"       node e2e/logo.mjs
+run "Browser: uploads"    node e2e/upload.mjs
 
 "$PHP" reset-db.php --yes >/dev/null
 echo; [ "$status" -eq 0 ] && echo "ALL SUITES PASSED" || echo "SOME SUITES FAILED"
