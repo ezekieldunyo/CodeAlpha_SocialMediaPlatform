@@ -2,7 +2,7 @@
 
 ## 1. Visual Design System
 
-**Direction (updated):** the brand mark is a teal→blue gradient "W" (see `wavelink-icon.svg`), so the app moves from pure monochrome to a **dark navy base with a teal/blue gradient accent**, rather than a flat black/white system. Gradient is reserved for the logo, primary actions, and active/selected states — everything else stays neutral so the accent still reads as deliberate, not decorative noise everywhere.
+**Direction (updated):** the brand mark is a teal→blue gradient "W" with wifi arcs on a dark navy rounded tile (the app tile, `frontend/public/wavelink-logo-512.png` and `wavelink-logo-128.png`), so the app moves from pure monochrome to a **dark navy base with a teal/blue gradient accent**, rather than a flat black/white system. Gradient is reserved for the logo, primary actions, and active/selected states — everything else stays neutral so the accent still reads as deliberate, not decorative noise everywhere.
 
 ### 1.1 Color Tokens
 
@@ -18,7 +18,7 @@
 | `--color-muted`        | `#9FB3C8`                              | Secondary text — usernames, timestamps, tagline |
 | `--color-line`         | `#1F2E42` (dark) / `#E1E6EC` (light)   | Borders, dividers between posts               |
 
-Light mode is the default for the feed itself (readability for a text-dense UI); the dark navy/gradient treatment is used for the header, nav, splash/auth screens, and marketing surfaces (see `wavelink-hero.svg`).
+Light mode is the default for the feed itself (readability for a text-dense UI); the dark navy/gradient treatment is used for the header, nav, splash/auth screens, and marketing surfaces (see the navy brand panel on the login and sign-up pages).
 
 ### 1.2 Typography
 
