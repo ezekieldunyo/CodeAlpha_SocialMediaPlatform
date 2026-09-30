@@ -10,13 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $userId = requireAuth();
 $data = getJsonBody();
-requireFields($data, ['content']);
 
-$content = trim($data['content']);
-$imageUrl = isset($data['image_url']) ? trim($data['image_url']) : null;
+$content = trim((string) ($data['content'] ?? ''));
+$imageUrl = trim((string) ($data['image_url'] ?? ''));
+$imageUrl = $imageUrl === '' ? null : $imageUrl;
 
-if ($content === '' || mb_strlen($content) > 1000) {
-    jsonError(400, 'Post content must be between 1 and 1000 characters.');
+// A post needs text, an image, or both.
+if ($content === '' && $imageUrl === null) {
+    jsonError(400, 'Write something or add a photo to post.');
+}
+if (mb_strlen($content) > 1000) {
+    jsonError(400, 'Post content must be 1000 characters or fewer.');
+}
+if ($imageUrl !== null && (mb_strlen($imageUrl) > 500 || !preg_match('#^https?://#i', $imageUrl))) {
+    jsonError(400, 'Image must be an http(s) URL of at most 500 characters.');
 }
 
 $pdo = getDbConnection();

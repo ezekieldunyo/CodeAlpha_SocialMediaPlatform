@@ -43,7 +43,13 @@ async function request(path, { method = 'GET', body, query } = {}) {
     throw new ApiError(0, 'Could not reach the server. Is the backend running?');
   }
 
-  const data = await response.json().catch(() => ({}));
+  const data = await response.json().catch(() => null);
+
+  // A "success" status whose body isn't JSON is a failure in disguise (e.g. a
+  // PHP error page served as 200); never treat it as a result.
+  if (response.ok && data === null) {
+    throw new ApiError(response.status, 'The server sent an unexpected response. Please try again.');
+  }
 
   if (!response.ok) {
     // A 401 while we hold a token means it expired or was revoked;
@@ -53,7 +59,7 @@ async function request(path, { method = 'GET', body, query } = {}) {
     }
     // A proxy or web server can reject an oversized upload before PHP runs, with no JSON body.
     const fallback = response.status === 413 ? 'That file is too large.' : `Request failed (${response.status}).`;
-    throw new ApiError(response.status, data.error || fallback);
+    throw new ApiError(response.status, data?.error || fallback);
   }
 
   return data;
@@ -68,6 +74,7 @@ function imageForm(file) {
 export const api = {
   register: (fields) => request('auth/register.php', { method: 'POST', body: fields }),
   login: (email, password) => request('auth/login.php', { method: 'POST', body: { email, password } }),
+  me: () => request('auth/me.php'),
 
   getProfile: (username) => request('users/profile.php', { query: { username } }),
   updateProfile: (fields) => request('users/update_profile.php', { method: 'PUT', body: fields }),

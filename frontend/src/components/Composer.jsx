@@ -22,7 +22,9 @@ export default function Composer({ autoFocus = false, onPosted }) {
 
   const trimmed = content.trim();
   const remaining = MAX_LENGTH - content.length;
-  const canPost = trimmed.length > 0 && remaining >= 0 && !busy && !image.uploading;
+  // A post needs text or an uploaded photo (a photo on its own is fine).
+  const hasContent = trimmed.length > 0 || Boolean(image.url);
+  const canPost = hasContent && remaining >= 0 && !busy && !image.uploading;
 
   function autoSize(el) {
     el.style.height = 'auto';
@@ -37,6 +39,8 @@ export default function Composer({ autoFocus = false, onPosted }) {
     try {
       // The image is already uploaded; the post just references its URL.
       const { post } = await api.createPost(trimmed, image.url);
+      // Only a returned post counts as success; never announce or close on anything less.
+      if (!post?.id) throw new Error("Your post couldn't be saved. Please try again.");
       setContent('');
       image.clear();
       if (textRef.current) textRef.current.style.height = 'auto';

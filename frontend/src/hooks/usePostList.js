@@ -50,7 +50,10 @@ export default function usePostList({ feed, userId, enabled = true }) {
 
   const retry = useCallback(() => load(page + 1, requestKey.current), [load, page]);
 
-  const prepend = useCallback((post) => setPosts((current) => [post, ...current]), []);
+  // Ignores anything that isn't a real post, so one bad event can't crash the feed.
+  const prepend = useCallback((post) => {
+    if (post?.id) setPosts((current) => [post, ...current]);
+  }, []);
   const update = useCallback(
     (id, changes) => setPosts((current) => current.map((p) => (p.id === id ? { ...p, ...changes } : p))),
     []

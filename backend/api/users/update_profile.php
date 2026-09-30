@@ -43,6 +43,10 @@ $stmt = $pdo->prepare('SELECT id, username, display_name, bio, avatar_url FROM u
 $stmt->execute([$userId]);
 
 $user = $stmt->fetch();
+if (!$user) {
+    // Account deleted while this request was running.
+    jsonError(401, 'Your session has ended. Please log in again.');
+}
 $user['id'] = (int) $user['id'];
 
 jsonResponse(200, ['user' => $user]);

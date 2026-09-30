@@ -152,6 +152,7 @@ export default function Profile() {
   useEffect(() => {
     if (!isSelf) return;
     const onCreated = (e) => {
+      if (!e.detail?.id) return;
       prepend(e.detail);
       setProfile((p) => ({ ...p, post_count: p.post_count + 1 }));
     };
