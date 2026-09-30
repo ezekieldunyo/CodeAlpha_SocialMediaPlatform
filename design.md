@@ -50,7 +50,7 @@ Mobile (<640px)
 │  post card                 │
 │  post card            (+) │  ← floating "New post" button
 ├─────────────────────────┤
-│  🏠     🔍     🔔     ✉   │  ← bottom bar
+│  🏠     🔍     🔔     💬   │  ← bottom bar
 └─────────────────────────┘
 ```
 

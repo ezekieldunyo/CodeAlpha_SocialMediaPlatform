@@ -135,6 +135,23 @@ await page.goto(`${APP}/`);
 await page.locator('.post').first().waitFor();
 await page.screenshot({ path: `${OUT}/05-feed-collapsed-nav.png` });
 
+// Messages uses an outlined chat bubble with two text lines (not the envelope).
+async function messagesIcon(link) {
+  return link.locator('svg').evaluate((svg) => ({
+    paths: [...svg.querySelectorAll('path')].map((p) => p.getAttribute('d')),
+    other: svg.querySelectorAll('rect, circle').length,
+    fill: getComputedStyle(svg).fill,
+    stroke: svg.getAttribute('stroke'),
+  }));
+}
+function checkMessagesIcon(where, icon) {
+  const bubble = icon.paths.length === 2 && icon.paths[0].startsWith('M5 4h14') && icon.paths[1] === 'M8 9h8M8 13h5' && icon.other === 0;
+  if (!bubble) throw new Error(`${where}: Messages icon is not the chat bubble: ${JSON.stringify(icon)}`);
+  if (icon.fill !== 'none' || !icon.stroke || icon.stroke === 'none') throw new Error(`${where}: Messages icon should be outline only: ${JSON.stringify(icon)}`);
+}
+checkMessagesIcon('sidebar', await messagesIcon(page.locator('.left-nav a[href="/messages"]')));
+step('sidebar: Messages shows the outlined chat-bubble icon');
+
 await page.setViewportSize({ width: 390, height: 844 });
 await page.reload();
 await page.locator('.post').first().waitFor();
@@ -168,7 +185,8 @@ if (Math.abs(bar.cells[0].left) > 1 || Math.abs(bar.cells.at(-1).left + widths.a
   throw new Error(`bottom bar not evenly spread: cells ${JSON.stringify(bar.cells)}, icon gaps ${iconGaps}`);
 }
 if (bar.badges !== 0) throw new Error('Notifications badge shown with nothing unread');
-step(`bottom bar: ${bar.labels.join(', ')}; edge to edge, icons ${iconGaps[0].toFixed(0)}px apart, no badge when nothing is unread`);
+checkMessagesIcon('bottom bar', await messagesIcon(page.locator('.bottom-bar a[aria-label="Messages"]')));
+step(`bottom bar: ${bar.labels.join(', ')}; edge to edge, icons ${iconGaps[0].toFixed(0)}px apart, no badge when nothing is unread, Messages is the chat bubble`);
 
 await page.locator('.bottom-bar').getByRole('link', { name: 'Explore' }).click();
 await page.waitForURL(`${APP}/explore`);

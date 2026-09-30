@@ -13,7 +13,7 @@ import {
   GradientDefs,
   HomeIcon,
   LogoutIcon,
-  MailIcon,
+  MessageIcon,
   MoreIcon,
   PlusIcon,
   SearchIcon,
@@ -110,7 +110,7 @@ function LeftNav({ onCompose }) {
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
     { to: '/explore', label: 'Explore', icon: ExploreIcon },
     { to: '/notifications', label: 'Notifications', icon: BellIcon },
-    { to: '/messages', label: 'Messages', icon: MailIcon },
+    { to: '/messages', label: 'Messages', icon: MessageIcon },
     { to: `/u/${user.username}`, label: 'Profile', icon: UserIcon },
   ];
 
@@ -178,7 +178,7 @@ function BottomBar() {
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
     { to: '/explore', label: 'Explore', icon: SearchIcon },
     { to: '/notifications', label: 'Notifications', icon: BellIcon, badge: UNREAD_NOTIFICATIONS },
-    { to: '/messages', label: 'Messages', icon: MailIcon },
+    { to: '/messages', label: 'Messages', icon: MessageIcon },
   ];
 
   return (

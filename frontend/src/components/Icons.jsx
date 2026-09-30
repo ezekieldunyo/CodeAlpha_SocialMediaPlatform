@@ -28,8 +28,10 @@ export const ExploreIcon = (p) => (
 export const BellIcon = (p) => (
   <Icon {...p}><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" /><path d="M10 20a2 2 0 0 0 4 0" /></Icon>
 );
-export const MailIcon = (p) => (
-  <Icon {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 6 8.5 7 8.5-7" /></Icon>
+// Chat bubble with two lines of text, for Messages. (The plain square bubble
+// is CommentIcon.)
+export const MessageIcon = (p) => (
+  <Icon {...p}><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9l-4 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" /><path d="M8 9h8M8 13h5" /></Icon>
 );
 export const UserIcon = (p) => (
   <Icon {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></Icon>
