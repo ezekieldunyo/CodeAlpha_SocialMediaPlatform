@@ -13,5 +13,7 @@ export const APP = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$
 export const API = (process.env.API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 export const OUT = process.env.SCREENSHOTS || join(dirname(fileURLToPath(import.meta.url)), 'screenshots');
 export const LAUNCH = { channel: process.env.BROWSER_CHANNEL || 'msedge', headless: true };
+// Folder the backend stores uploads in (run-all.sh uses uploads-test).
+export const UPLOADS = process.env.UPLOADS_DIR || 'uploads';
 
 mkdirSync(OUT, { recursive: true });

@@ -2,7 +2,7 @@ import { chromium } from 'playwright-core';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { API, APP, LAUNCH, OUT } from './config.mjs';
+import { API, APP, LAUNCH, OUT, UPLOADS } from './config.mjs';
 
 // Image uploads from the device: the post composer and the profile photo.
 // Uses the real file chooser, holds the upload request to see the loading
@@ -104,7 +104,7 @@ const img = posted.locator('img.post-image');
 await img.waitFor();
 await page.waitForFunction((el) => el.complete && el.naturalWidth > 0, await img.elementHandle());
 const src = await img.getAttribute('src');
-expect(/\/uploads\/posts\/[0-9a-f]{32}\.png$/.test(src), `post shows the uploaded image (${src})`);
+expect(new RegExp(`/${UPLOADS}/posts/[0-9a-f]{32}\\.png$`).test(src), `post shows the uploaded image (${src})`);
 expect((await preview.count()) === 0, 'composer cleared after posting');
 const listed = await (await fetch(`${API}/posts/list.php?feed=all`)).json();
 expect(listed.posts[0].image_url === src, 'post saved with the uploaded image URL (image_url)');
@@ -143,7 +143,7 @@ await dialog.waitFor({ state: 'detached' });
 const headerAvatar = page.locator('.profile-avatar img.avatar');
 await headerAvatar.waitFor();
 const avatarSrc = await headerAvatar.getAttribute('src');
-expect(/\/uploads\/avatars\/[0-9a-f]{32}\.png$/.test(avatarSrc), `saved profile shows the uploaded photo (${avatarSrc})`);
+expect(new RegExp(`/${UPLOADS}/avatars/[0-9a-f]{32}\\.png$`).test(avatarSrc), `saved profile shows the uploaded photo (${avatarSrc})`);
 
 await page.getByRole('button', { name: 'Edit profile' }).click();
 fc = await chooser(page, dialog.getByRole('button', { name: 'Change photo' }));

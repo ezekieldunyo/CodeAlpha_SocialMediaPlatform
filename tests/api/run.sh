@@ -222,7 +222,8 @@ check "unfollow" 200 "$CODE" "$BODY" '"following":false,"follower_count":0'
 # --- image uploads: posts/upload_image.php and users/upload_avatar.php
 FX="$SCR/fixtures"; mkdir -p "$FX"
 "$PHP" "$(dirname "$0")/make-fixtures.php" "$FX" > /dev/null || { echo "FAIL  could not generate upload fixtures"; fail=$((fail+1)); }
-SITE="${B%/api}"   # backend root, where /uploads/ is served
+SITE="${B%/api}"   # backend root
+UP="${UPLOADS_DIR:-uploads}"   # folder the backend stores uploads in (tests: uploads-test)
 # upload <endpoint> <token> <file>. JSON escapes "/" as "\/"; BODY has that
 # undone so URL patterns below can use plain slashes.
 upload() {
@@ -234,7 +235,7 @@ url_of() { echo "$1" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p'; }
 
 for ext in png jpg gif webp; do
   upload posts/upload_image.php "$TA" "$FX/real.$ext"
-  check "upload real .$ext -> 201, random name, .$ext" 201 "$CODE" "$BODY" "\"url\":\"https?:.*/uploads/posts/[0-9a-f]{32}\\.$ext\""
+  check "upload real .$ext -> 201, random name, .$ext" 201 "$CODE" "$BODY" "\"url\":\"https?:.*/$UP/posts/[0-9a-f]{32}\\.$ext\""
 done
 upload posts/upload_image.php "$TA" "$FX/real.png"; U1=$(url_of "$BODY")
 curl -s -D "$SCR/h.txt" -o "$SCR/served.png" "$U1"
@@ -248,8 +249,8 @@ upload posts/upload_image.php "$TA" "$FX/real.png"; U2=$(url_of "$BODY")
 # ignored. (PHP also strips any directory part from upload filenames.)
 cp "$FX/real.png" "$FX/evil.php"
 upload posts/upload_image.php "$TA" "$FX/evil.php"
-check "client filename evil.php ignored: saved under a random .png name" 201 "$CODE" "$BODY" '/uploads/posts/[0-9a-f]{32}\.png"'
-EVIL=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/evil.php"); EVIL2=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/uploads/evil.php")
+check "client filename evil.php ignored: saved under a random .png name" 201 "$CODE" "$BODY" "/$UP/posts/[0-9a-f]{32}\\.png\""
+EVIL=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/evil.php"); EVIL2=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/$UP/evil.php")
 [ "$EVIL" = 404 ] && [ "$EVIL2" = 404 ] && { echo "PASS  nothing written outside uploads/posts (evil.php: 404)"; pass=$((pass+1)); } || { echo "FAIL  evil.php reachable ($EVIL / $EVIL2)"; fail=$((fail+1)); }
 
 upload posts/upload_image.php "$TA" "$FX/big-under-limit.png"
@@ -279,18 +280,20 @@ req POST posts/create.php "$TA" "{\"content\":\"post with an uploaded image\",\"
 check "create post with the uploaded image URL" 201 "$CODE" "$BODY" "\"image_url\":\"$(echo "$U1" | sed 's#/#\\\\/#g')\""
 
 upload users/upload_avatar.php "$TA" "$FX/real.jpg"
-check "avatar upload -> 201 under uploads/avatars" 201 "$CODE" "$BODY" '/uploads/avatars/[0-9a-f]{32}\.jpg"'
+check "avatar upload -> 201 under uploads/avatars" 201 "$CODE" "$BODY" "/$UP/avatars/[0-9a-f]{32}\\.jpg\""
 AV=$(url_of "$BODY")
 upload users/upload_avatar.php "$TA" "$FX/not-an-image.png"
 check "avatar non-image -> 415" 415 "$CODE" "$BODY" "isn't a supported image"
 upload users/upload_avatar.php "$TA" "$FX/too-large.png"
 check "avatar over 5 MB -> 413" 413 "$CODE" "$BODY" 'maximum size is 5 MB'
 req PUT users/update_profile.php "$TA" "{\"avatar_url\":\"$AV\"}"
-check "save uploaded avatar via update_profile" 200 "$CODE" "$BODY" '"avatar_url":"http[^"]*uploads\\/avatars\\/[0-9a-f]{32}\.jpg"'
+check "save uploaded avatar via update_profile" 200 "$CODE" "$BODY" "\"avatar_url\":\"http[^\"]*$UP\\\\/avatars\\\\/[0-9a-f]{32}\\.jpg\""
 
 # --- CORS
-H=$(curl -s -D - -o /dev/null -X OPTIONS $B/posts/create.php -H "Origin: http://127.0.0.1:5173")
-echo "$H" | grep -q "204" && echo "$H" | grep -qi "Access-Control-Allow-Origin: http://127.0.0.1:5173" && { echo "PASS  preflight 127.0.0.1:5173 allowed"; pass=$((pass+1)); } || { echo "FAIL  preflight"; fail=$((fail+1)); }
+# The frontend origin the backend is configured to allow (run-all.sh sets CORS_ORIGINS).
+ORIGIN="${CORS_ORIGINS:-http://127.0.0.1:5173}"; ORIGIN="${ORIGIN##*,}"
+H=$(curl -s -D - -o /dev/null -X OPTIONS $B/posts/create.php -H "Origin: $ORIGIN")
+echo "$H" | grep -q "204" && echo "$H" | grep -qi "Access-Control-Allow-Origin: $ORIGIN" && { echo "PASS  preflight $ORIGIN allowed"; pass=$((pass+1)); } || { echo "FAIL  preflight from $ORIGIN"; fail=$((fail+1)); }
 H=$(curl -s -D - -o /dev/null "$B/comments/list.php?post_id=1" -H "Origin: https://evil.example")
 echo "$H" | grep -qi "Access-Control-Allow-Origin" && { echo "FAIL  foreign origin echoed"; fail=$((fail+1)); } || { echo "PASS  foreign origin not allowed"; pass=$((pass+1)); }
 

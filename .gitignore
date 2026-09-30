@@ -4,3 +4,4 @@ dist/
 backend/config/local.php
 backend/uploads/
 tests/e2e/screenshots/
+backend/uploads-test/

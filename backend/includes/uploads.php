@@ -113,7 +113,7 @@ function handleImageUpload(string $field, string $subdir): string {
     }
     unset($image);
 
-    $dir = __DIR__ . '/../uploads/' . $subdir;
+    $dir = __DIR__ . '/../' . uploadsDir() . '/' . $subdir;
     if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
         error_log("Could not create upload directory $dir");
         jsonError(500, 'The server could not store the upload.');
@@ -129,7 +129,14 @@ function handleImageUpload(string $field, string $subdir): string {
     return publicUploadUrl("$subdir/$name");
 }
 
-// Absolute URL for a file in backend/uploads/. Set UPLOADS_URL in config to
+// Folder name under backend/ that holds uploads (config UPLOADS_DIR). Kept to a
+// plain name so it can never point outside the backend.
+function uploadsDir(): string {
+    $dir = (string) config('UPLOADS_DIR');
+    return preg_match('/^[A-Za-z0-9_-]+$/', $dir) ? $dir : 'uploads';
+}
+
+// Absolute URL for an uploaded file. Set UPLOADS_URL in config to
 // override (e.g. behind a CDN); otherwise it's derived from this request, so
 // it works for http://backend.test, php -S and sub-folder installs alike.
 function publicUploadUrl(string $relativePath): string {
@@ -140,7 +147,7 @@ function publicUploadUrl(string $relativePath): string {
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         // /api/posts/upload_image.php -> site root is three levels up.
         $root = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/', 3)), '/');
-        $base = ($https ? 'https' : 'http') . "://$host$root/uploads";
+        $base = ($https ? 'https' : 'http') . "://$host$root/" . uploadsDir();
     }
     return rtrim($base, '/') . '/' . $relativePath;
 }
