@@ -171,12 +171,12 @@ function MobileHeader() {
 // wire this to the real count once they exist.
 const UNREAD_NOTIFICATIONS = 0;
 
-// X-style tab bar: icon-only, evenly spaced edge to edge. "Search" is the
-// Explore page, which is where people search. The label is for screen readers.
+// X-style tab bar: icon-only, evenly spaced edge to edge. The labels are for
+// screen readers. Explore keeps the magnifying glass for when it gains search.
 function BottomBar() {
   const items = [
     { to: '/', label: 'Home', icon: HomeIcon, end: true },
-    { to: '/explore', label: 'Search', icon: SearchIcon },
+    { to: '/explore', label: 'Explore', icon: SearchIcon },
     { to: '/notifications', label: 'Notifications', icon: BellIcon, badge: UNREAD_NOTIFICATIONS },
     { to: '/messages', label: 'Messages', icon: MailIcon },
   ];

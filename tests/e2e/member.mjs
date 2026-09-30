@@ -143,7 +143,7 @@ await page.screenshot({ path: `${OUT}/06-feed-mobile.png` });
 if (!noHScroll) throw new Error('mobile feed scrolls horizontally');
 step('mobile layout (no horizontal scroll)');
 
-// Bottom bar: exactly Home, Search, Notifications, Messages, in that order,
+// Bottom bar: exactly Home, Explore, Notifications, Messages, in that order,
 // icon-only, four equal cells spanning the full width, icons evenly spaced.
 const bar = await page.locator('.bottom-bar').evaluate((nav) => {
   const items = [...nav.children];
@@ -157,7 +157,7 @@ const bar = await page.locator('.bottom-bar').evaluate((nav) => {
     width: window.innerWidth,
   };
 });
-const expected = ['Home', 'Search', 'Notifications', 'Messages'];
+const expected = ['Home', 'Explore', 'Notifications', 'Messages'];
 if (JSON.stringify(bar.labels) !== JSON.stringify(expected)) throw new Error(`bottom bar items: ${bar.labels}`);
 if (JSON.stringify(bar.hrefs) !== JSON.stringify(['/', '/explore', '/notifications', '/messages'])) throw new Error(`bottom bar links: ${bar.hrefs}`);
 if (bar.text !== '') throw new Error(`bottom bar should be icon-only, shows "${bar.text}"`);
@@ -170,16 +170,16 @@ if (Math.abs(bar.cells[0].left) > 1 || Math.abs(bar.cells.at(-1).left + widths.a
 if (bar.badges !== 0) throw new Error('Notifications badge shown with nothing unread');
 step(`bottom bar: ${bar.labels.join(', ')}; edge to edge, icons ${iconGaps[0].toFixed(0)}px apart, no badge when nothing is unread`);
 
-await page.locator('.bottom-bar').getByRole('link', { name: 'Search' }).click();
+await page.locator('.bottom-bar').getByRole('link', { name: 'Explore' }).click();
 await page.waitForURL(`${APP}/explore`);
 await page.locator('.page-header h1', { hasText: 'Explore' }).waitFor();
-if (!(await page.locator('.bottom-bar a[aria-label="Search"]').evaluate((a) => a.classList.contains('active')))) throw new Error('Search not active on /explore');
+if (!(await page.locator('.bottom-bar a[aria-label="Explore"]').evaluate((a) => a.classList.contains('active')))) throw new Error('Explore not active on /explore');
 await page.screenshot({ path: `${OUT}/06b-search-mobile.png` });
 for (const [name, path] of [['Notifications', '/notifications'], ['Messages', '/messages'], ['Home', '/']]) {
   await page.locator('.bottom-bar').getByRole('link', { name }).click();
   await page.waitForURL(`${APP}${path}`);
 }
-step('Search opens the Explore page (tab active); Notifications, Messages and Home navigate');
+step('Explore (magnifying glass) opens the Explore page (tab active); Notifications, Messages and Home navigate');
 
 // Floating button: the phone's "New post" button, a + icon, opens the composer.
 const fab = page.getByRole('button', { name: 'New post' });

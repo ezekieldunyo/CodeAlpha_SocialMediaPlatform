@@ -54,7 +54,7 @@ Mobile (<640px)
 └─────────────────────────┘
 ```
 
-The bottom bar is icon-only, like X's: Home, Search (the Explore page), Notifications
+The bottom bar is icon-only, like X's: Home, Explore (a magnifying glass), Notifications
 and Messages, in four equal cells across the full width. Notifications shows a small
 count badge when something is unread. The floating (+) button is the phone's version
 of the sidebar's Post button and opens the same composer.
