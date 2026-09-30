@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 
-// Shared frame for Login and Register: a navy brand panel (wordmark and
-// tagline in the style of wavelink-hero.svg) beside the form, with the app
-// tile above the form on every screen size.
+// Shared frame for Login and Register: a navy brand panel (WAVELINK wordmark
+// and tagline) beside the form, with the app tile above the form on every
+// screen size.
 // backTo: the page a guest came from (they reach here with history.replace, so
 // this link is their way back without logging in).
 export default function AuthShell({ title, subtitle, children, footer, backTo }) {

@@ -6,7 +6,7 @@ Users can create an account, post updates, follow other users, and like/comment 
 
 See `requirement.md` for the feature list, `design.md` for the design system, and `mockups/feed-mockup.html` for the target layout.
 
-Brand assets: `wavelink-icon.svg` (mark only), `wavelink-lockup-light.svg` (mark + wordmark), `wavelink-hero.svg` (marketing/auth hero), and favicons in `frontend/public/`.
+Brand assets are PNGs in `frontend/public/`: the app tile `wavelink-logo-512.png` / `wavelink-logo-128.png` (a teal-and-blue "W" with wifi arcs on a dark navy rounded tile, used in the sidebar, mobile header and login/sign-up pages), plus the favicons and app icons (`favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-*.png`).
 
 ## Tech Stack
 
