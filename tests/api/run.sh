@@ -401,6 +401,64 @@ check "olga deletes the reposted post" 200 "$CODE" "$BODY" '"deleted":true'
 req GET "posts/list.php?feed=home" "$TF"
 check "deleted post's repost gone from the follower's feed (cascade)" 200 "$CODE" "$BODY" '^\{"posts":\[\],"has_more":false\}$'
 
+# --- posting safely: client_token (a retry can't duplicate) and the transaction
+# fault-inject.php changes the TEST database only (it refuses anything not *_test).
+FI() { "$PHP" "$(dirname "$0")/../fault-inject.php" "$1" > /dev/null || { echo "FAIL  fault-inject $1"; fail=$((fail+1)); }; }
+ocount() { curl -s "$B/posts/list.php?feed=user&user_id=$IDO" | grep -o '"id":[0-9]*,"content"' | wc -l; }
+T1="draft_${RANDOM}_aaaaaaaaaaaaaaaa"; T2="draft_${RANDOM}_bbbbbbbbbbbbbbbb"; T3="draft_${RANDOM}_cccccccccccccccc"; T4="draft_${RANDOM}_dddddddddddddddd"
+N0=$(ocount)
+req POST posts/create.php "$TO" "{\"content\":\"olga draft one\",\"client_token\":\"$T1\"}"
+check "create with client_token -> 201" 201 "$CODE" "$BODY" 'olga draft one'; D1=$(echo "$BODY" | sed 's/.*"post":{"id":\([0-9]*\).*/\1/')
+req POST posts/create.php "$TO" "{\"content\":\"olga draft one\",\"client_token\":\"$T1\"}"
+check "same client_token again -> 200 with the same post, not a copy" 200 "$CODE" "$BODY" "^\\{\"post\":\\{\"id\":$D1,\"content\":\"olga draft one\""
+[ "$(ocount)" = $((N0+1)) ] && { echo "PASS  retry made no duplicate (olga has $((N0+1)) posts)"; pass=$((pass+1)); } || { echo "FAIL  retry duplicated: $(ocount) posts, expected $((N0+1))"; fail=$((fail+1)); }
+req POST posts/create.php "$TR" "{\"content\":\"rita, same token\",\"client_token\":\"$T1\"}"
+check "another user with the same token gets their own new post (tokens are per user)" 201 "$CODE" "$BODY" 'rita, same token'
+for i in 1 2; do printf '%s' "{\"content\":\"olga draft two\",\"client_token\":\"$T2\"}" | curl -s -X POST "$B/posts/create.php" -H "Authorization: Bearer $TO" -H "Content-Type: application/json" --data-binary @- > "$SCR/race$i.json" & done; wait
+R1=$(sed 's/.*"post":{"id":\([0-9]*\).*/\1/' "$SCR/race1.json"); R2=$(sed 's/.*"post":{"id":\([0-9]*\).*/\1/' "$SCR/race2.json")
+[ -n "$R1" ] && [ "$R1" = "$R2" ] && [ "$(ocount)" = $((N0+2)) ] && { echo "PASS  two simultaneous posts of one draft: one post, both answers carry it (id $R1)"; pass=$((pass+1)); } || { echo "FAIL  simultaneous drafts: ids $R1 / $R2, $(ocount) posts: $(cat "$SCR/race1.json" "$SCR/race2.json" | head -c 300)"; fail=$((fail+1)); }
+req POST posts/create.php "$TO" '{"content":"x","client_token":"not a token!"}'
+check "invalid client_token -> 400" 400 "$CODE" "$BODY" 'client_token'
+req POST posts/create.php "$TO" '{"content":"x","client_token":"short"}'
+check "too-short client_token -> 400" 400 "$CODE" "$BODY" 'client_token'
+
+# "Did my post go through?"
+req GET "posts/get.php?client_token=$T1" "$TO"
+check "get.php?client_token: the owner gets the saved post" 200 "$CODE" "$BODY" "^\\{\"post\":\\{\"id\":$D1,"
+req GET "posts/get.php?client_token=$T2" "$TF"
+check "get.php?client_token: someone else's draft -> 404" 404 "$CODE" "$BODY" 'Nothing was posted'
+req GET "posts/get.php?client_token=$T1"
+check "get.php?client_token without login -> 401" 401 "$CODE" "$BODY"
+req GET "posts/get.php?client_token=bad!" "$TO"
+check "get.php?client_token invalid -> 400" 400 "$CODE" "$BODY" 'client_token'
+
+# Replay of the 2026-09-30 bug: the post is saved, then reading it back fails
+# (reposts table missing). The whole save must be undone.
+N1=$(ocount)
+FI drop-reposts
+req POST posts/create.php "$TO" "{\"content\":\"olga after a server error\",\"client_token\":\"$T3\"}"
+check "server error after the save step -> 500 JSON" 500 "$CODE" "$BODY" '^\{"error":'
+FI restore-reposts
+[ "$(ocount)" = "$N1" ] && { echo "PASS  ...and nothing was saved (transaction rolled back)"; pass=$((pass+1)); } || { echo "FAIL  a post was saved despite the 500: $(ocount) posts, expected $N1"; fail=$((fail+1)); }
+req GET "posts/get.php?client_token=$T3" "$TO"
+check "get.php?client_token confirms nothing was posted -> 404" 404 "$CODE" "$BODY" 'Nothing was posted'
+req POST posts/create.php "$TO" "{\"content\":\"olga after a server error\",\"client_token\":\"$T3\"}"
+check "retry once fixed -> 201, posted once" 201 "$CODE" "$BODY" 'olga after a server error'
+[ "$(ocount)" = $((N1+1)) ] && { echo "PASS  exactly one post after the retry"; pass=$((pass+1)); } || { echo "FAIL  $(ocount) posts after retry, expected $((N1+1))"; fail=$((fail+1)); }
+
+# A database not migrated yet (no posts.client_token): posting still works,
+# and the check says it can't tell rather than "nothing was posted".
+FI drop-client-token
+req POST posts/create.php "$TO" "{\"content\":\"olga on an old database\",\"client_token\":\"$T4\"}"
+check "no client_token column yet: posting still works" 201 "$CODE" "$BODY" 'olga on an old database'
+req GET "posts/get.php?client_token=$T4" "$TO"
+check "no client_token column yet: the check answers 503, not 404" 503 "$CODE" "$BODY" "can't check"
+FI restore-client-token
+req POST posts/create.php "$TO" "{\"content\":\"olga after migrating\",\"client_token\":\"$T4\"}"
+check "after the migration, tokens work again" 201 "$CODE" "$BODY" 'olga after migrating'
+req POST posts/create.php "$TO" "{\"content\":\"olga after migrating\",\"client_token\":\"$T4\"}"
+check "after the migration, a retry returns the same post" 200 "$CODE" "$BODY" 'olga after migrating'
+
 # --- image uploads: posts/upload_image.php and users/upload_avatar.php
 FX="$SCR/fixtures"; mkdir -p "$FX"
 "$PHP" "$(dirname "$0")/make-fixtures.php" "$FX" > /dev/null || { echo "FAIL  could not generate upload fixtures"; fail=$((fail+1)); }

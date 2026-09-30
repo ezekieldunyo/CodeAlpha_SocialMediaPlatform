@@ -79,10 +79,11 @@
 | PUT    | /api/users/update_profile.php | Yes | Edit own profile        |
 | GET    | /api/users/suggestions.php    | Yes | "Who to follow": users the viewer doesn't follow yet, plus whether anyone else has joined ¹ |
 | POST   | /api/users/upload_avatar.php  | Yes | Upload a profile photo, returns its URL ⁵ |
-| POST   | /api/posts/create.php         | Yes | Create a post           |
+| POST   | /api/posts/create.php         | Yes | Create a post; a retried draft is never saved twice ⁹ |
 | POST   | /api/posts/upload_image.php   | Yes | Upload an image for a post, returns its URL ⁵ |
 | GET    | /api/posts/list.php?feed=home\|user\|all | Home feed: Yes · User and "For you" feeds: No | Home feed, a profile's posts, or "For you" (everyone's posts); home and "For you" include reposts ⁴ ⁸ |
 | GET    | /api/posts/get.php?id=        | No  | View a single post (same shape as a feed item) ³ |
+| GET    | /api/posts/get.php?client_token= | Yes | Whether a draft was posted: the viewer's post for it, or 404 ⁹ |
 | DELETE | /api/posts/delete.php         | Yes | Delete own post         |
 | POST   | /api/comments/create.php      | Yes | Add a comment           |
 | GET    | /api/comments/list.php        | No  | List comments on a post |
@@ -102,5 +103,6 @@
 ⁶ Added after a bug where a browser stayed logged in after its account was deleted: the profile showed "This account doesn't exist" and posts silently failed. Every endpoint that requires login now also checks the account still exists (401 otherwise), and the app calls `auth/me.php` on start-up and sends the user to log in again with a message if their session has ended.
 ⁷ Bookmarks were added with the `bookmarks` table (`id`, `user_id`, `post_id`, `created_at`, `UNIQUE(user_id, post_id)`, both foreign keys `ON DELETE CASCADE`). The toggle works like likes: remove if present, otherwise `INSERT IGNORE`, so simultaneous clicks can't create duplicates. Feed items gained `bookmarked_by_viewer`.
 ⁸ Reposts were added with the `reposts` table (`id`, `user_id`, `post_id`, `created_at`, `UNIQUE(user_id, post_id)`, both foreign keys `ON DELETE CASCADE`). The toggle works like likes and bookmarks (remove if present, otherwise `INSERT IGNORE`). Every post gained `repost_count`, `reposted_by_viewer` and `reposted_by`. The home feed (reposts by the viewer and people they follow) and "For you" (all reposts) list each repost as its own entry, ordered by the repost's `created_at`, with `reposted_by: { id, username, display_name }`; the post's content, author and counts stay the original's. So one post can appear more than once in a feed: as the original and once per repost. `reposted_by` is `null` for original posts, profile feeds, single posts and saved posts.
+⁹ Added after a post was saved but reported as failed (a table the read-back needed was missing), so retrying would have posted it twice. `create.php` now saves and reads back in one transaction, so an error means nothing was saved. Each draft carries a random `client_token` (column `posts.client_token`, `UNIQUE(user_id, client_token)`, added to existing databases by `database/migrations/001_posts_client_token.sql`); sending the same draft again returns the post already saved. When an attempt fails without a clear rejection, the composer asks `get.php?client_token=` and says either "Your post went through", "Not posted: nothing was saved", or that it couldn't confirm and retrying is safe.
 
 Full request/response shapes are documented in the API table in `README.md`.

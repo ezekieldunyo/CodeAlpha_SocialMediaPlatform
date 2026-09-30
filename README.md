@@ -61,6 +61,15 @@ This creates the `codealpha_social` database and its seven tables. Every stateme
 `CREATE … IF NOT EXISTS`, so re-running it on an existing database only adds tables that
 are missing (e.g. `bookmarks`, `reposts`) and never touches existing data.
 
+It can't add a column to an existing table, so a database created before a column was
+added needs the matching file in `backend/database/migrations/`, run once:
+
+```bash
+mysql -u root -p codealpha_social < backend/database/migrations/001_posts_client_token.sql
+```
+
+Until then posting still works, just without the protection against duplicate retries.
+
 **2. Backend config.** Copy `backend/config/local.example.php` to `backend/config/local.php`
 and set your MySQL password and a long random `JWT_SECRET`. `local.php` is gitignored, so
 credentials never get committed. (Environment variables with the same names also work.)
@@ -114,7 +123,8 @@ everything else is always the original post's.
 | PUT | `users/update_profile.php` | ✓ | `{ user }` |
 | POST | `users/upload_avatar.php` (multipart, field `image`) | ✓ | `{ url }`: save it as `avatar_url` via `update_profile.php`. Same rules as `upload_image.php` |
 | GET | `users/suggestions.php?limit=` | ✓ | `{ users, has_other_users }`: people you don't follow yet, and whether anyone else has joined |
-| POST | `posts/create.php` | ✓ | `{ post }`. Needs `content` (up to 1000 chars), an `image_url` (http(s), up to 500 chars), or both |
+| POST | `posts/create.php` | ✓ | `201 { post }`. Needs `content` (up to 1000 chars), an `image_url` (http(s), up to 500 chars), or both. Optional `client_token` (16-64 of `A-Z a-z 0-9 _ -`) identifies the draft: sending the same one again returns `200 { post }` with the post already saved, never a second copy. The save is one transaction, so an error means nothing was saved |
+| GET | `posts/get.php?client_token=` | ✓ | `{ post }`: your post saved for that draft, 404 if nothing was, 503 if the database hasn't been migrated yet. The app uses it to tell whether a failed-looking post went through |
 | POST | `posts/upload_image.php` (multipart, field `image`) | ✓ | `201 { url }` for a real JPEG, PNG, GIF or WebP up to 5 MB (type checked from the contents, full decode); 413 if larger, 415 if not a supported image. Saved with a random name in `backend/uploads/posts/`; send the URL as `image_url` to `posts/create.php` |
 | GET | `posts/list.php?feed=home\|user\|all&user_id=&page=` | home: ✓ | `{ posts, has_more }`. `all` = everyone's posts and reposts ("For you", public); `home` = posts and reposts by you and people you follow; `user` (needs `user_id`) = that user's own posts only; other values → 400. Newest first, by the post's or the repost's time, so a post can appear once as itself and once per repost |
 | GET | `posts/get.php?id=` | optional | `{ post }`: same shape as a `posts/list.php` item |
@@ -168,7 +178,14 @@ create test users and posts in your real database.
   bookmarks with the Saved page, reposts (toggle, highlight and count, the "… reposted"
   label in a follower's feed, no label on the post page), and the five-icon action row
   evenly spaced across the full width on the feed, post page and Saved page at desktop and
-  phone widths).
+  phone widths), and `composer` (the character counter, and failed-looking posts: saved
+  but answered with an error, never sent, answer lost, and a replay of a server error
+  after the save step; the app must say whether the post went through, and retrying must
+  never create a duplicate).
+
+`tests/fault-inject.php` breaks and restores parts of the **test** database schema (e.g.
+drops the `reposts` table) so the suites can reproduce real server failures. Like
+`reset-db.php`, it refuses any database not named `*_test`.
 
 ## Internship Submission Checklist
 

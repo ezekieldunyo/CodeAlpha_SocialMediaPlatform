@@ -134,7 +134,9 @@ try {
   expect(true, 'bug 3: sidebar post shows in the feed and on the profile');
 
   // A failure disguised as success (PHP error page with status 200) must not
-  // close the composer, announce a post, or crash the page.
+  // close the composer, announce a post, or crash the page. The app then asks
+  // the server whether the post was saved; this fake reply never reached it,
+  // so the answer is a definite "not posted".
   await page.goto(`${APP}/`);
   await page.route('**/posts/create.php', (route) => route.fulfill({
     status: 200,
@@ -144,10 +146,10 @@ try {
   await page.locator('.left-nav .btn-post').click();
   await dialog.getByLabel('Post content').fill(`Should not vanish ${tag}`);
   await dialog.getByRole('button', { name: 'Post', exact: true }).click();
-  await dialog.getByRole('alert').filter({ hasText: 'unexpected response' }).waitFor({ timeout: 5000 }).catch(() => {});
+  await dialog.getByRole('alert').filter({ hasText: 'Not posted: nothing was saved' }).waitFor({ timeout: 5000 }).catch(() => {});
   const stillOpen = (await dialog.count()) > 0;
-  expect(stillOpen && (await dialog.getByRole('alert').innerText()).includes('unexpected response'),
-    'bug 3: a 200 HTML error page is reported as an error, composer stays open');
+  expect(stillOpen && (await dialog.getByRole('alert').innerText()).includes('Not posted: nothing was saved'),
+    'bug 3: a 200 HTML error page is not taken as success: checked, "Not posted: nothing was saved", composer stays open');
   expect(stillOpen && (await dialog.getByLabel('Post content').inputValue()) === `Should not vanish ${tag}`, 'bug 3: the typed text is kept');
   expect(await page.locator('.left-nav').isVisible(), 'bug 3: page did not crash');
   await page.unroute('**/posts/create.php');

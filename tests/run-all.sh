@@ -95,6 +95,7 @@ run "Browser: logo"       node e2e/logo.mjs
 run "Browser: uploads"    node e2e/upload.mjs
 run "Browser: regressions" node e2e/regressions.mjs
 run "Browser: post actions" node e2e/actions.mjs
+run "Browser: composer"   node e2e/composer.mjs
 
 "$PHP" reset-db.php --yes >/dev/null
 echo; [ "$status" -eq 0 ] && echo "ALL SUITES PASSED" || echo "SOME SUITES FAILED"
