@@ -176,7 +176,9 @@ try {
   await b.locator('.left-nav').getByRole('button', { name: 'More' }).click();
   await b.getByRole('menuitem', { name: 'Saved' }).click();
   await b.waitForURL(`${APP}/saved`);
-  await b.locator('.center .post').first().waitFor();
+  // Wait for both saved posts: the first post to appear can still be the previous page's.
+  await postCard(b, `Ben's post ${tag}`).waitFor({ timeout: 5000 });
+  await postCard(b, `Ann's post ${tag}`).waitFor({ timeout: 5000 });
   const saved = await b.locator('.center .post .post-text').allInnerTexts();
   expect(saved.length === 2 && saved[0] === `Ben's post ${tag}` && saved[1] === `Ann's post ${tag}`, `Saved page (via More menu) lists bookmarks, newest-saved first (${saved.join(' | ')})`);
   await b.screenshot({ path: `${OUT}/a3-saved-page.png` });
@@ -202,6 +204,57 @@ try {
   expect((await b.locator('.profile-top').getByRole('link', { name: 'Saved' }).count()) === 0, "no Saved link on someone else's profile");
   await b.context().close();
 } catch (e) { failed++; console.log(`✗ bookmarks: stopped early: ${firstLine(e)}`); }
+
+// ---------- Action row spans the full width, evenly spaced ----------
+// Measures the rendered icons: equal intervals between them, the first lined
+// up with the post text, the row reaching the card's right edge, no overflow.
+// Checked on the feed, the single post page and the Saved page, at desktop
+// and phone widths, with non-zero counts showing.
+async function rowLayout(card) {
+  return card.evaluate((el) => {
+    const text = el.querySelector('.post-text').getBoundingClientRect();
+    const body = el.querySelector('.post-body').getBoundingClientRect();
+    const row = el.querySelector('.post-actions').getBoundingClientRect();
+    const buttons = [...el.querySelectorAll('.post-actions > button')].map((b) => b.getBoundingClientRect());
+    const icons = [...el.querySelectorAll('.post-actions > button svg')].map((s) => s.getBoundingClientRect());
+    return {
+      textLeft: text.left, bodyRight: body.right, rowWidth: row.width, bodyWidth: body.width,
+      iconLefts: icons.map((r) => r.left), lastButtonRight: buttons.at(-1).right,
+      overflow: document.documentElement.scrollWidth > window.innerWidth,
+    };
+  });
+}
+function checkRow(label, m) {
+  const gaps = m.iconLefts.slice(1).map((x, i) => x - m.iconLefts[i]);
+  const even = gaps.length === 3 && Math.max(...gaps) - Math.min(...gaps) <= 2;
+  expect(even, `${label}: 4 icons evenly spaced (intervals ${gaps.map((g) => g.toFixed(0)).join(', ')}px)`);
+  expect(Math.abs(m.iconLefts[0] - m.textLeft) <= 2, `${label}: first icon lines up with the post text (${(m.iconLefts[0] - m.textLeft).toFixed(1)}px)`);
+  expect(m.lastButtonRight >= m.bodyRight - 1 && m.rowWidth >= m.bodyWidth, `${label}: row reaches the right edge of the post (row ${m.rowWidth.toFixed(0)}px of ${m.bodyWidth.toFixed(0)}px)`);
+  expect(!m.overflow, `${label}: no horizontal overflow`);
+}
+try {
+  // Give Ann's post a comment and a like so counts are showing.
+  await fetch(`${API}/likes/toggle.php`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ann.token}` }, body: JSON.stringify({ post_id: annPost.id }) });
+  await fetch(`${API}/comments/create.php`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ann.token}` }, body: JSON.stringify({ post_id: annPost.id, content: 'A comment' }) });
+  await fetch(`${API}/bookmarks/toggle.php`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ann.token}` }, body: JSON.stringify({ post_id: annPost.id }) });
+
+  for (const [size, viewport] of [['desktop', { width: 1400, height: 900 }], ['phone', { width: 390, height: 844 }]]) {
+    const p = await as(ann, { viewport });
+    for (const [where, path, selector] of [
+      ['feed', '/', '.center .post'],
+      ['post page', `/post/${annPost.id}`, '.post-detail'],
+      ['saved page', '/saved', '.center .post'],
+    ]) {
+      await p.goto(`${APP}${path}`);
+      const card = p.locator(selector, { hasText: `Ann's post ${tag}` }).first();
+      await card.waitFor({ timeout: 5000 });
+      await card.locator('.action.like', { hasText: '1' }).waitFor({ timeout: 5000 });
+      checkRow(`${size} ${where}`, await rowLayout(card));
+      await card.screenshot({ path: `${OUT}/r-${size}-${where.replace(' ', '-')}.png` });
+    }
+    await p.context().close();
+  }
+} catch (e) { failed++; console.log(`✗ action row layout: stopped early: ${firstLine(e)}`); }
 
 expect(errors.length === 0, `no page errors${errors.length ? ': ' + errors.join(' | ') : ''}`);
 await browser.close();

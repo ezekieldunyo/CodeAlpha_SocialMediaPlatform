@@ -158,7 +158,8 @@ create test users and posts in your real database.
   rejection of non-images and files over 5 MB), `regressions` (the profile, composer,
   sidebar-post and profile-photo bugs, including a session whose account was deleted), and
   `actions` (delete only visible to a post's author, the "⋯" menu, share / copy link, and
-  bookmarks with the Saved page).
+  bookmarks with the Saved page, and the action row evenly spaced across the full width on
+  the feed, post page and Saved page at desktop and phone widths).
 
 ## Internship Submission Checklist
 

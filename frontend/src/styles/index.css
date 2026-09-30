@@ -730,11 +730,16 @@ textarea.input {
   border-radius: 16px;
   border: 1px solid var(--line);
 }
+/* Spread across the full width of the post, like X: first icon at the left
+   edge, last at the right, the rest evenly between. Every action has the same
+   min-width, so the icons sit at evenly divided positions whatever the counts.
+   The negative side margins line the icons up with the post text. */
 .post-actions {
   display: flex;
   align-items: center;
-  gap: 40px;
-  margin: 6px 0 0 -8px;
+  justify-content: space-between;
+  gap: 4px;
+  margin: 6px -8px 0 -8px;
 }
 .action {
   display: inline-flex;
@@ -1178,10 +1183,6 @@ textarea.input {
   .post {
     padding: 12px 12px 6px;
   }
-  .post-actions {
-    gap: 16px;
-  }
-
   .profile-banner {
     height: 120px;
   }
@@ -1347,9 +1348,6 @@ textarea.input {
 .menu-item.danger:hover {
   background: var(--danger-soft);
 }
-.action.bookmark {
-  min-width: 0;
-}
 .action.bookmark:hover,
 .action.bookmark.is-saved {
   color: var(--blue);
@@ -1357,9 +1355,6 @@ textarea.input {
 }
 .action.bookmark.is-saved {
   background: none;
-}
-.action.share {
-  min-width: 0;
 }
 .copied-note {
   margin: 2px 0 0;
