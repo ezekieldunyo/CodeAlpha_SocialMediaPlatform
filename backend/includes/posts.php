@@ -60,6 +60,26 @@ function formatPost(array $row, array $likedIds = [], array $bookmarkedIds = [],
     ];
 }
 
+// client_token: a random id the app sends with each draft (posts/create.php),
+// so a retried post returns the one already saved instead of a duplicate.
+function isValidClientToken($token): bool {
+    return is_string($token) && preg_match('/^[A-Za-z0-9_-]{16,64}$/', $token) === 1;
+}
+
+// False until database/migrations/001_posts_client_token.sql has been run on
+// a database created before the column existed.
+function postsHaveClientToken(PDO $pdo): bool {
+    static $has = null;
+    return $has ??= (bool) $pdo->query("SHOW COLUMNS FROM posts LIKE 'client_token'")->fetch();
+}
+
+// $userId's post saved with $token, or null.
+function findPostByClientToken(PDO $pdo, int $userId, string $token): ?array {
+    $stmt = $pdo->prepare(POST_SELECT . ' WHERE p.user_id = ? AND p.client_token = ?');
+    $stmt->execute([$userId, $token]);
+    return $stmt->fetch() ?: null;
+}
+
 // Formats a page of rows for $viewerId.
 function formatPosts(PDO $pdo, ?int $viewerId, array $rows): array {
     [$liked, $bookmarked, $reposted] = viewerPostFlags($pdo, $viewerId, array_column($rows, 'id'));

@@ -84,8 +84,12 @@ export const api = {
   getPost: (id) => request('posts/get.php', { query: { id } }),
   listPosts: ({ feed, userId, page }) =>
     request('posts/list.php', { query: { feed, user_id: userId, page } }),
-  createPost: (content, imageUrl) =>
-    request('posts/create.php', { method: 'POST', body: { content, image_url: imageUrl || undefined } }),
+  // clientToken identifies the draft: sending it again returns the post
+  // already saved for it instead of creating a second one.
+  createPost: (content, imageUrl, clientToken) =>
+    request('posts/create.php', { method: 'POST', body: { content, image_url: imageUrl || undefined, client_token: clientToken } }),
+  // The viewer's post saved for that draft; 404 if nothing was saved.
+  findDraftPost: (clientToken) => request('posts/get.php', { query: { client_token: clientToken } }),
   deletePost: (id) => request('posts/delete.php', { method: 'DELETE', query: { id } }),
   uploadPostImage: (file) => request('posts/upload_image.php', { method: 'POST', body: imageForm(file) }),
 

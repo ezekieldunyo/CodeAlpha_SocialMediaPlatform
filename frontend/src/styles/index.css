@@ -315,6 +315,12 @@ textarea.input {
   font-size: 14px;
   margin: 6px 0 0;
 }
+/* Neutral status, e.g. "Checking whether your post went through…" */
+.form-note {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 6px 0 0;
+}
 
 .avatar {
   display: inline-grid;

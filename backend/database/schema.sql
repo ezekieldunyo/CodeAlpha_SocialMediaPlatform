@@ -20,7 +20,11 @@ CREATE TABLE IF NOT EXISTS posts (
     user_id    INT UNSIGNED NOT NULL,
     content    VARCHAR(1000) NOT NULL,
     image_url  VARCHAR(500) NULL,
+    -- Random id the app sends with each draft, so a retried post can't be
+    -- saved twice (see posts/create.php). NULL for posts made without one.
+    client_token VARCHAR(64) NULL,
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_post_client_token (user_id, client_token),
     INDEX idx_posts_user_created (user_id, created_at),
     INDEX idx_posts_created (created_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
