@@ -43,6 +43,7 @@ expect(footer === `wavelink · ${new Date().getFullYear()}`, `footer reads exact
 expect(await page.getByRole('tab', { name: 'For you', selected: true }).isVisible(), '"For you" is the default tab');
 const tabNames = await page.getByRole('tab').allInnerTexts();
 expect(tabNames.join('|') === 'For you|Following', `tab order is For you, Following (got ${tabNames.join(', ')})`);
+await page.getByText('Nothing here yet.').waitFor({ timeout: 8000 }).catch(() => {});
 expect(await page.getByText('Nothing here yet.').isVisible(), '"For you" empty state when nobody has posted');
 await page.goto(`${APP}/explore`);
 await page.locator('.center').getByText('No one else has joined yet.').waitFor();
@@ -113,6 +114,7 @@ expect((await g.locator('.center .post', { hasText: 'Kofi here' }).locator('.act
 await g.screenshot({ path: `${OUT}/f3-guest-for-you.png` });
 await g.getByRole('tab', { name: 'Following' }).click();
 await g.waitForURL(`${APP}/login`);
+await g.getByText('Log in to see posts from people you follow.').waitFor({ timeout: 8000 }).catch(() => {});
 expect(await g.getByText('Log in to see posts from people you follow.').isVisible(), 'guest: "Following" -> /login with reason');
 await g.getByRole('link', { name: '← Keep browsing' }).click();
 await g.waitForURL(`${APP}/`);

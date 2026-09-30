@@ -14,7 +14,7 @@
 - A user can view another user's public profile, including their posts and follower/following counts.
 
 ### 1.3 Posts
-- A logged-in user can create a text post (optionally with one image, uploaded from their device: JPEG, PNG, GIF or WebP, up to 5 MB).
+- A logged-in user can create a post with text, one image, or both (images are uploaded from their device: JPEG, PNG, GIF or WebP, up to 5 MB).
 - Posts show author, content, timestamp, like count, and comment count.
 - A user can delete their own posts.
 - The home feed shows posts from users the current user follows, newest first.
@@ -62,6 +62,7 @@
 |--------|-------------------------------|:---:|------------------------|
 | POST   | /api/auth/register.php        | No  | Create account          |
 | POST   | /api/auth/login.php           | No  | Log in, get token       |
+| GET    | /api/auth/me.php              | Yes | Current user; confirms a saved login is still valid ⁶ |
 | GET    | /api/users/profile.php?id= (or ?username=) | No  | View a profile          |
 | PUT    | /api/users/update_profile.php | Yes | Edit own profile        |
 | GET    | /api/users/suggestions.php    | Yes | "Who to follow": users the viewer doesn't follow yet, plus whether anyone else has joined ¹ |
@@ -83,5 +84,6 @@
 ³ Added for the `/post/:id` page. Public like profiles: guests read it; a logged-in viewer also gets `liked_by_viewer`.
 ⁴ `feed=all` was added for the "For you" tab (the default on the home page): the most recent posts from everyone, newest first, paginated like the other feeds. It is public, so logged-out visitors can read it; `feed=home` still requires login. Any other `feed` value returns 400.
 ⁵ Image uploads replace pasting an image URL. Both endpoints take one file (`multipart/form-data`, field `image`) and accept only real JPEG, PNG, GIF or WebP images: the type is detected from the file's contents and the image must fully decode, so extensions are never trusted. Maximum 5 MB (413 over that), 415 for anything that isn't a supported image. Files get a random name in `backend/uploads/posts/` or `backend/uploads/avatars/`; the returned URL is then sent as `image_url` to `posts/create.php` or `avatar_url` to `users/update_profile.php`.
+⁶ Added after a bug where a browser stayed logged in after its account was deleted: the profile showed "This account doesn't exist" and posts silently failed. Every endpoint that requires login now also checks the account still exists (401 otherwise), and the app calls `auth/me.php` on start-up and sends the user to log in again with a message if their session has ended.
 
 Full request/response shapes are documented in the API table in `README.md`.

@@ -289,6 +289,49 @@ check "avatar over 5 MB -> 413" 413 "$CODE" "$BODY" 'maximum size is 5 MB'
 req PUT users/update_profile.php "$TA" "{\"avatar_url\":\"$AV\"}"
 check "save uploaded avatar via update_profile" 200 "$CODE" "$BODY" "\"avatar_url\":\"http[^\"]*$UP\\\\/avatars\\\\/[0-9a-f]{32}\\.jpg\""
 
+# --- sessions, deleted accounts and error responses
+# (regressions for "profile doesn't exist", "posts never saved" and "photo won't
+# save" when a browser stayed logged in after its account was deleted)
+req GET auth/me.php "$TA"
+check "me.php returns the logged-in user" 200 "$CODE" "$BODY" '^\{"user":\{"id":[0-9]+,"username":"alice","email":"alice@x.io",'
+req GET auth/me.php
+check "me.php without a token -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+
+req POST posts/create.php "$TA" "{\"image_url\":\"$U1\"}"
+check "photo-only post (no text) -> 201" 201 "$CODE" "$BODY" '"content":"","image_url":"http'
+req POST posts/create.php "$TA" '{"content":"   "}'
+check "no text and no photo -> 400" 400 "$CODE" "$BODY" 'Write something or add a photo'
+LONGURL="http://x/$(printf '%0600d' 0)"
+req POST posts/create.php "$TA" "{\"content\":\"hi\",\"image_url\":\"$LONGURL\"}"
+check "image_url over 500 chars -> 400 JSON (used to crash the insert)" 400 "$CODE" "$BODY" 'at most 500 characters'
+req POST posts/create.php "$TA" '{"content":"hi","image_url":"javascript:alert(1)"}'
+check "non-http image_url -> 400" 400 "$CODE" "$BODY" 'http\(s\) URL'
+
+# An account deleted while its token is still valid (what happened to @dunyo).
+req POST auth/register.php "" '{"username":"ghost","email":"ghost@x.io","password":"password1","display_name":"Ghost"}'
+TG=$(tok "$BODY")
+if [ "$("$PHP" "$(dirname "$0")/../delete-test-user.php" ghost 2>&1)" = 1 ]; then
+  echo "PASS  (setup) ghost account deleted while its token stays valid"; pass=$((pass+1))
+  req GET auth/me.php "$TG"
+  check "deleted account: me.php -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+  req POST posts/create.php "$TG" '{"content":"ghost post"}'
+  check "deleted account: create post -> 401 JSON, not a 200 PHP error page" 401 "$CODE" "$BODY" '^\{"error":"Your session has ended'
+  upload posts/upload_image.php "$TG" "$FX/real.png"
+  check "deleted account: upload image -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+  upload users/upload_avatar.php "$TG" "$FX/real.png"
+  check "deleted account: upload avatar -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+  req PUT users/update_profile.php "$TG" '{"bio":"still here?"}'
+  check "deleted account: update profile -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+  req POST likes/toggle.php "$TG" "{\"post_id\":$APID}"
+  check "deleted account: like -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+  req GET "posts/list.php?feed=all" "$TG"
+  check "deleted account: public feed still readable (as a guest)" 200 "$CODE" "$BODY" '"posts":\['
+else
+  echo "FAIL  ghost-account checks need the isolated test database (run tests/run-all.sh)"; fail=$((fail+1))
+fi
+CT=$(curl -s -o /dev/null -w '%{content_type}' -X POST "$B/posts/create.php" -H "Authorization: Bearer $TG" -H "Content-Type: application/json" --data-binary '{"content":"x"}')
+echo "$CT" | grep -q '^application/json' && { echo "PASS  error responses are JSON ($CT)"; pass=$((pass+1)); } || { echo "FAIL  error response content type: $CT"; fail=$((fail+1)); }
+
 # --- CORS
 # The frontend origin the backend is configured to allow (run-all.sh sets CORS_ORIGINS).
 ORIGIN="${CORS_ORIGINS:-http://127.0.0.1:5173}"; ORIGIN="${ORIGIN##*,}"

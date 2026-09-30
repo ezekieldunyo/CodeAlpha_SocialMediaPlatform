@@ -87,12 +87,14 @@ g.on('response', (r) => r.url().includes('/api/') && r.status() === 401 && unaut
 await g.goto(`${APP}/u/maya`);
 await g.locator('.profile-top').getByRole('button', { name: 'Follow', exact: true }).click();
 await g.waitForURL(`${APP}/login`);
+await g.getByText('Log in to follow people.').waitFor({ timeout: 8000 }).catch(() => {});
 expect(await g.getByText('Log in to follow people.').isVisible(), 'follow attempt -> /login with reason');
 await g.getByRole('link', { name: '← Keep browsing' }).click();
 await g.waitForURL(`${APP}/u/maya`);
 await g.locator('.post', { hasText: 'Just shipped' }).locator('.action').first().click();
 await g.getByRole('button', { name: 'Log in to reply' }).click();
 await g.waitForURL(`${APP}/login`);
+await g.getByText('Log in to reply to posts.').waitFor({ timeout: 8000 }).catch(() => {});
 expect(await g.getByText('Log in to reply to posts.').isVisible(), 'reply attempt -> /login with reason');
 // '/' is public now ("For you"); its guest behaviour is covered in feed.mjs.
 for (const path of ['/explore', '/notifications']) {

@@ -49,6 +49,7 @@ await g.screenshot({ path: `${OUT}/p1-post-guest.png` });
 // Reply attempt -> login with reason, then back.
 await detail.getByRole('button', { name: 'Log in to reply' }).click();
 await g.waitForURL(`${APP}/login`);
+await g.getByText('Log in to reply to posts.').waitFor({ timeout: 8000 }).catch(() => {});
 expect(await g.getByText('Log in to reply to posts.').isVisible(), 'guest: reply attempt -> /login with reason');
 await g.getByRole('link', { name: '← Keep browsing' }).click();
 await g.waitForURL(POST_URL);
@@ -58,6 +59,7 @@ await g.locator('.post-detail').waitFor();
 // Like attempt -> login with reason -> log in -> back on the post, like works.
 await g.locator('.post-detail .action.like').click();
 await g.waitForURL(`${APP}/login`);
+await g.getByText('Log in to like posts.').waitFor({ timeout: 8000 }).catch(() => {});
 expect(await g.getByText('Log in to like posts.').isVisible(), 'guest: like attempt -> /login with reason');
 const afterGuest = await call(`posts/get.php?id=${post.id}`, null, null, 'GET');
 expect(afterGuest.post.like_count === 1, 'guest: no like recorded by the redirect');

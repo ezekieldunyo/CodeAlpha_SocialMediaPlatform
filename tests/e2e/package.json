@@ -10,7 +10,8 @@
     "feed": "node feed.mjs",
     "smoke": "node smoke.mjs",
     "logo": "node logo.mjs",
-    "upload": "node upload.mjs"
+    "upload": "node upload.mjs",
+    "regressions": "node regressions.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

@@ -157,14 +157,28 @@ await page.getByRole('button', { name: 'Log in' }).click();
 await page.waitForURL(`${APP}/`);
 step('logout, bad-password error, login');
 
-// Expired/garbage token -> signed out. "/" is public now ("For you"), so the
-// visitor stays there as a guest instead of being bounced to /login.
-await page.evaluate(() => localStorage.setItem('wavelink_token', 'garbage.token.value'));
-await page.reload();
-await page.locator('.guest-banner').waitFor();
-const tokenLeft = await page.evaluate(() => localStorage.getItem('wavelink_token'));
+// Expired/garbage token -> the app checks it with the server on start-up,
+// signs out and says why on the login page.
+// Uses a fresh browser context whose storage holds the bad token before the
+// app first loads. (Swapping the token in a page that's still loading lets that
+// page sign out first, and a reload would then start already signed out.)
+const savedUser = await page.evaluate(() => localStorage.getItem('wavelink_user'));
+const staleCtx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+await staleCtx.addInitScript((user) => {
+  if (sessionStorage.getItem('seeded')) return; // only before the first load
+  sessionStorage.setItem('seeded', '1');
+  localStorage.setItem('wavelink_token', 'garbage.token.value');
+  localStorage.setItem('wavelink_user', user);
+}, savedUser);
+const stale = await staleCtx.newPage();
+stale.on('pageerror', (e) => errors.push(e.message));
+await stale.goto(`${APP}/`);
+await stale.getByText('Your session has ended. Please log in again.').waitFor();
+if (stale.url() !== `${APP}/login`) throw new Error(`expected /login, got ${stale.url()}`);
+const tokenLeft = await stale.evaluate(() => localStorage.getItem('wavelink_token'));
 if (tokenLeft !== null) throw new Error('invalid token was not cleared');
-step('invalid token signs the user out (guest view of "For you", token cleared)');
+await staleCtx.close();
+step('invalid token signs the user out (sent to login with "Your session has ended", token cleared)');
 
 await page.setViewportSize({ width: 1400, height: 900 });
 await page.goto(`${APP}/login`);
