@@ -30,6 +30,7 @@ CodeAlpha_SocialMediaPlatform/
 │   │   ├── posts/       # create.php, list.php, get.php, delete.php, upload_image.php
 │   │   ├── comments/    # create.php, list.php, delete.php
 │   │   ├── likes/       # toggle.php
+│   │   ├── bookmarks/   # toggle.php, list.php
 │   │   └── follow/      # toggle.php, followers.php
 │   ├── database/
 │   │   └── schema.sql
@@ -55,7 +56,9 @@ CodeAlpha_SocialMediaPlatform/
 mysql -u root -p < backend/database/schema.sql
 ```
 
-This creates the `codealpha_social` database and its five tables.
+This creates the `codealpha_social` database and its six tables. Every statement is
+`CREATE … IF NOT EXISTS`, so re-running it on an existing database only adds tables that
+are missing (e.g. `bookmarks`) and never touches existing data.
 
 **2. Backend config.** Copy `backend/config/local.example.php` to `backend/config/local.php`
 and set your MySQL password and a long random `JWT_SECRET`. `local.php` is gitignored, so
@@ -94,6 +97,10 @@ All responses are JSON. Errors are always `{ "error": "message" }` with a matchi
 they return 401 if the token is invalid or expired, **or if its account no longer exists**. Server
 errors are always JSON too, never an HTML error page.
 
+Every post in a response has the same shape: `{ id, content, image_url, created_at,
+like_count, comment_count, liked_by_viewer, bookmarked_by_viewer, author: { id, username,
+display_name, avatar_url } }`. The two `_by_viewer` flags are `false` for guests.
+
 | Method | Endpoint | Auth | Returns |
 |---|---|---|---|
 | POST | `auth/register.php` | – | `{ token, user }` |
@@ -112,6 +119,8 @@ errors are always JSON too, never an HTML error page.
 | GET | `comments/list.php?post_id=` | – | `{ comments }` |
 | DELETE | `comments/delete.php?id=` | ✓ owner | `{ deleted }` |
 | POST | `likes/toggle.php` | ✓ | `{ liked, like_count }` |
+| POST | `bookmarks/toggle.php` | ✓ | `{ bookmarked, bookmark_count }`. Takes `post_id`; 404 if the post doesn't exist |
+| GET | `bookmarks/list.php?page=` | ✓ | `{ posts, has_more }`: your saved posts, most recently saved first, 20 per page, same shape as feed items |
 | POST | `follow/toggle.php` | ✓ | `{ following, follower_count }` |
 | GET | `follow/followers.php?user_id=&type=followers\|following` | optional | `{ users }` |
 
@@ -146,8 +155,10 @@ create test users and posts in your real database.
   `feed` (For you / Following tabs, Who to follow), `smoke` (login, post, like), `logo`
   (the app tile in the sidebar, mobile header and auth pages: alt, size, sharpness at 1x-3x),
   `upload` (photo picker, preview, uploading state, remove, post and profile photo, and
-  rejection of non-images and files over 5 MB), and `regressions` (the profile, composer,
-  sidebar-post and profile-photo bugs, including a session whose account was deleted).
+  rejection of non-images and files over 5 MB), `regressions` (the profile, composer,
+  sidebar-post and profile-photo bugs, including a session whose account was deleted), and
+  `actions` (delete only visible to a post's author, the "⋯" menu, share / copy link, and
+  bookmarks with the Saved page).
 
 ## Internship Submission Checklist
 

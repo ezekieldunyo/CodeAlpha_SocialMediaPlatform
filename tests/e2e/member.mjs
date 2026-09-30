@@ -93,7 +93,8 @@ step('Post button modal creates post and closes');
 
 // Delete own post
 page.once('dialog', (d) => d.accept());
-await page.locator('.post', { hasText: 'Posted from the nav modal' }).getByLabel('Delete post').click();
+await page.locator('.post', { hasText: 'Posted from the nav modal' }).getByRole('button', { name: 'More options' }).click();
+await page.getByRole('menuitem', { name: 'Delete post' }).click();
 await page.locator('.post', { hasText: 'Posted from the nav modal' }).waitFor({ state: 'detached' });
 step('deleted own post');
 

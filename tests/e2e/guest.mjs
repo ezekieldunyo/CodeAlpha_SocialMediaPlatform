@@ -47,7 +47,7 @@ expect(await page.locator('.profile-stats').getByText('1').first().isVisible(), 
 expect(await page.locator('.guest-banner').isVisible(), 'guest banner shown');
 expect((await page.locator('.composer').count()) === 0, 'no composer for guests');
 expect((await page.locator('.left-nav .nav-item').count()) === 0, 'no member nav items for guests');
-expect((await page.locator('.post .action.danger').count()) === 0, 'no delete buttons for guests');
+expect((await page.getByRole('button', { name: 'More options' }).count()) === 0 && (await page.getByText('Delete post').count()) === 0, 'no delete control (no ⋯ menu) for guests');
 expect(await page.locator('.right-rail').getByText('New to wavelink?').isVisible(), 'rail shows sign-up card, not suggestions');
 await page.screenshot({ path: `${OUT}/g1-guest-profile.png` });
 

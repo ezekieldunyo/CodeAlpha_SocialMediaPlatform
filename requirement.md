@@ -29,6 +29,13 @@
 - A logged-in user can like or unlike a post (toggle).
 - The post shows the current like count and whether the current user has liked it.
 
+### 1.5a Bookmarks, sharing and post options
+- A logged-in user can bookmark (save) or un-save any post (toggle); the bookmark icon is filled when saved.
+- A "Saved" page (sidebar More menu, or the user's own profile) lists their saved posts, most recently saved first. Guests are asked to log in.
+- Anyone, including guests, can share a post: the share icon copies the link to its `/post/:id` page and shows "Link copied".
+- A post's delete control lives in a "⋯" menu that only the post's author ever sees; deleting asks for confirmation.
+- Action row on every post: comments, share, likes, bookmark.
+
 ### 1.6 Follow System
 - A logged-in user can follow or unfollow another user (toggle).
 - A user cannot follow themselves.
@@ -76,6 +83,8 @@
 | GET    | /api/comments/list.php        | No  | List comments on a post |
 | DELETE | /api/comments/delete.php      | Yes | Delete own comment ² |
 | POST   | /api/likes/toggle.php         | Yes | Like / unlike a post    |
+| POST   | /api/bookmarks/toggle.php     | Yes | Save / un-save a post; returns `{ bookmarked, bookmark_count }` ⁷ |
+| GET    | /api/bookmarks/list.php?page= | Yes | The user's saved posts, paginated, same shape as feed items ⁷ |
 | POST   | /api/follow/toggle.php        | Yes | Follow / unfollow a user|
 | GET    | /api/follow/followers.php     | No  | List followers/following|
 
@@ -85,5 +94,6 @@
 ⁴ `feed=all` was added for the "For you" tab (the default on the home page): the most recent posts from everyone, newest first, paginated like the other feeds. It is public, so logged-out visitors can read it; `feed=home` still requires login. Any other `feed` value returns 400.
 ⁵ Image uploads replace pasting an image URL. Both endpoints take one file (`multipart/form-data`, field `image`) and accept only real JPEG, PNG, GIF or WebP images: the type is detected from the file's contents and the image must fully decode, so extensions are never trusted. Maximum 5 MB (413 over that), 415 for anything that isn't a supported image. Files get a random name in `backend/uploads/posts/` or `backend/uploads/avatars/`; the returned URL is then sent as `image_url` to `posts/create.php` or `avatar_url` to `users/update_profile.php`.
 ⁶ Added after a bug where a browser stayed logged in after its account was deleted: the profile showed "This account doesn't exist" and posts silently failed. Every endpoint that requires login now also checks the account still exists (401 otherwise), and the app calls `auth/me.php` on start-up and sends the user to log in again with a message if their session has ended.
+⁷ Bookmarks were added with the `bookmarks` table (`id`, `user_id`, `post_id`, `created_at`, `UNIQUE(user_id, post_id)`, both foreign keys `ON DELETE CASCADE`). The toggle works like likes: remove if present, otherwise `INSERT IGNORE`, so simultaneous clicks can't create duplicates. Feed items gained `bookmarked_by_viewer`.
 
 Full request/response shapes are documented in the API table in `README.md`.

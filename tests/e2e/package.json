@@ -11,7 +11,8 @@
     "smoke": "node smoke.mjs",
     "logo": "node logo.mjs",
     "upload": "node upload.mjs",
-    "regressions": "node regressions.mjs"
+    "regressions": "node regressions.mjs",
+    "actions": "node actions.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

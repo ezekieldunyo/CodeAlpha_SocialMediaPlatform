@@ -144,7 +144,7 @@ same_as_feed() { # token-or-empty label
   [ "$r" = same ] && { echo "PASS  get.php post identical to feed item ($2)"; pass=$((pass+1)); } || { echo "FAIL  get.php vs feed item ($2): $r"; fail=$((fail+1)); }
 }
 req GET "posts/get.php?id=$PID"
-check "get post as guest" 200 "$CODE" "$BODY" '^\{"post":\{"id":[0-9]+,"content":"Hello from Bob .*","image_url":null,"created_at":"[0-9-]+ [0-9:]+","like_count":0,"comment_count":0,"liked_by_viewer":false,"author":\{"id":[0-9]+,"username":"bob","display_name":"Bob","avatar_url":null\}\}\}$'
+check "get post as guest" 200 "$CODE" "$BODY" '^\{"post":\{"id":[0-9]+,"content":"Hello from Bob .*","image_url":null,"created_at":"[0-9-]+ [0-9:]+","like_count":0,"comment_count":0,"liked_by_viewer":false,"bookmarked_by_viewer":false,"author":\{"id":[0-9]+,"username":"bob","display_name":"Bob","avatar_url":null\}\}\}$'
 same_as_feed "" "guest"
 curl -s -o /dev/null -X POST $B/likes/toggle.php -H "Authorization: Bearer $TA" -H "Content-Type: application/json" --data-binary "{\"post_id\":$PID}"
 req GET "posts/get.php?id=$PID" "$TA"
@@ -218,6 +218,78 @@ req GET "posts/get.php?id=$PID"
 check "get deleted post -> 404" 404 "$CODE" "$BODY" 'Post not found'
 req POST follow/toggle.php "$TA" "{\"user_id\":$IDB}"
 check "unfollow" 200 "$CODE" "$BODY" '"following":false,"follower_count":0'
+
+# --- bookmarks: bookmarks/toggle.php and bookmarks/list.php
+# Bob's remaining posts (newest first), from his profile feed.
+BOBIDS=$( { curl -s "$B/posts/list.php?feed=user&user_id=$IDB"; echo; curl -s "$B/posts/list.php?feed=user&user_id=$IDB&page=2"; } \
+  | "$PHP" -r 'foreach (explode("\n", stream_get_contents(STDIN)) as $l) { $d = json_decode($l, true); foreach ($d["posts"] ?? [] as $p) echo $p["id"], " "; }')
+set -- $BOBIDS; BM1=$1; BM2=$2
+[ "$#" -ge 21 ] && { echo "PASS  (setup) bob has $# posts to bookmark"; pass=$((pass+1)); } || { echo "FAIL  (setup) expected >= 21 of bob's posts, got $#"; fail=$((fail+1)); }
+
+req POST bookmarks/toggle.php "" "{\"post_id\":$BM1}"
+check "bookmark without login -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+req POST bookmarks/toggle.php "$TA" '{"post_id":999999}'
+check "bookmark missing post -> 404" 404 "$CODE" "$BODY" 'Post not found'
+req POST bookmarks/toggle.php "$TA" '{}'
+check "bookmark without post_id -> 400" 400 "$CODE" "$BODY" 'post_id'
+req GET bookmarks/toggle.php "$TA"
+check "bookmark with GET -> 405" 405 "$CODE" "$BODY"
+req GET bookmarks/list.php
+check "saved list without login -> 401" 401 "$CODE" "$BODY" 'Your session has ended'
+req GET bookmarks/list.php "$TA"
+check "saved list starts empty" 200 "$CODE" "$BODY" '^\{"posts":\[\],"has_more":false\}$'
+
+req POST bookmarks/toggle.php "$TA" "{\"post_id\":$BM1}"
+check "alice bookmarks a post" 200 "$CODE" "$BODY" '^\{"bookmarked":true,"bookmark_count":1\}$'
+req POST bookmarks/toggle.php "$TB" "{\"post_id\":$BM1}"
+check "bob bookmarks the same post: count 2" 200 "$CODE" "$BODY" '^\{"bookmarked":true,"bookmark_count":2\}$'
+req POST bookmarks/toggle.php "$TB" "{\"post_id\":$BM1}"
+check "bob un-bookmarks: count back to 1" 200 "$CODE" "$BODY" '^\{"bookmarked":false,"bookmark_count":1\}$'
+
+# Two simultaneous toggles by one user must never leave a duplicate row.
+for i in 1 2; do curl -s -o /dev/null -X POST "$B/bookmarks/toggle.php" -H "Authorization: Bearer $TB" -H "Content-Type: application/json" --data-binary "{\"post_id\":$BM2}" & done; wait
+req POST bookmarks/toggle.php "$TA" "{\"post_id\":$BM2}"   # alice adds one more
+BC=$(echo "$BODY" | sed 's/.*"bookmark_count":\([0-9]*\).*/\1/')
+{ [ "$BC" = 1 ] || [ "$BC" = 2 ]; } && { echo "PASS  concurrent double-toggle left bob with at most one bookmark (count now $BC)"; pass=$((pass+1)); } || { echo "FAIL  concurrent toggles produced count $BC"; fail=$((fail+1)); }
+req POST bookmarks/toggle.php "$TA" "{\"post_id\":$BM2}"   # alice removes it again
+
+# Viewer flag in feeds and single posts.
+req GET "posts/get.php?id=$BM1" "$TA"
+check "get.php: bookmarked_by_viewer true for alice" 200 "$CODE" "$BODY" '"bookmarked_by_viewer":true'
+req GET "posts/get.php?id=$BM1" "$TB"
+check "get.php: bookmarked_by_viewer false for bob" 200 "$CODE" "$BODY" '"bookmarked_by_viewer":false'
+req GET "posts/get.php?id=$BM1"
+check "get.php: bookmarked_by_viewer false for guests" 200 "$CODE" "$BODY" '"bookmarked_by_viewer":false'
+req GET "posts/list.php?feed=user&user_id=$IDB" "$TA"
+check "feed: alice's bookmarked post flagged" 200 "$CODE" "$BODY" "\"id\":$BM1,[^}]*\"bookmarked_by_viewer\":true"
+
+# Saved list: same shape as a feed item, newest-saved first, 20 per page.
+curl -s "$B/bookmarks/list.php" -H "Authorization: Bearer $TA" > "$SCR/saved.json"
+curl -s "$B/posts/get.php?id=$BM1" -H "Authorization: Bearer $TA" > "$SCR/one.json"
+SAME=$("$PHP" -r '$s = json_decode(file_get_contents($argv[1]), true)["posts"][0] ?? null; $g = json_decode(file_get_contents($argv[2]), true)["post"]; echo $s === $g ? "same" : "differs";' "$SCR/saved.json" "$SCR/one.json")
+[ "$SAME" = same ] && { echo "PASS  saved item identical to get.php's post (same shape as feed items)"; pass=$((pass+1)); } || { echo "FAIL  saved item vs get.php: $SAME"; fail=$((fail+1)); }
+shift 1   # bookmark 21 more of bob's posts, oldest-saved first
+SAVED_ORDER=""
+for id in $(echo "$@" | tr ' ' '\n' | head -21); do
+  curl -s -o /dev/null -X POST "$B/bookmarks/toggle.php" -H "Authorization: Bearer $TA" -H "Content-Type: application/json" --data-binary "{\"post_id\":$id}"
+  SAVED_ORDER="$id $SAVED_ORDER"
+done
+EXPECT_FIRST=$(echo $SAVED_ORDER | cut -d' ' -f1)
+req GET bookmarks/list.php "$TA"
+check "saved page 1: has_more (22 saved)" 200 "$CODE" "$BODY" '"has_more":true'
+check "saved list: most recently saved first" 200 "$CODE" "$BODY" "^\\{\"posts\":\\[\\{\"id\":$EXPECT_FIRST,"
+N1=$(echo "$BODY" | grep -o '"bookmarked_by_viewer":true' | wc -l); [ "$N1" = 20 ] && { echo "PASS  saved page 1 has 20 posts, all flagged bookmarked"; pass=$((pass+1)); } || { echo "FAIL  saved page 1 flagged count $N1"; fail=$((fail+1)); }
+req GET "bookmarks/list.php?page=2" "$TA"
+check "saved page 2: has_more false" 200 "$CODE" "$BODY" '"has_more":false'
+N2=$(echo "$BODY" | grep -o '"id":[0-9]*,"content"' | wc -l); [ "$N2" = 2 ] && { echo "PASS  saved page 2 has the remaining 2"; pass=$((pass+1)); } || { echo "FAIL  saved page 2 has $N2"; fail=$((fail+1)); }
+req GET bookmarks/list.php "$TB"
+check "bob's saved list doesn't include alice's bookmarks" 200 "$CODE" "$BODY" '^\{"posts":\[\],"has_more":false\}$'
+
+# Deleting a post removes its bookmarks (ON DELETE CASCADE).
+req DELETE "posts/delete.php?id=$BM1" "$TB"
+check "bob deletes a post alice saved" 200 "$CODE" "$BODY" '"deleted":true'
+req GET "bookmarks/list.php?page=2" "$TA"
+N3=$(echo "$BODY" | grep -o '"id":[0-9]*,"content"' | wc -l); ! echo "$BODY" | grep -q "\"id\":$BM1," && [ "$N3" = 1 ] && { echo "PASS  deleted post dropped from alice's saved list (cascade)"; pass=$((pass+1)); } || { echo "FAIL  deleted post still saved (page 2 has $N3)"; fail=$((fail+1)); }
 
 # --- image uploads: posts/upload_image.php and users/upload_avatar.php
 FX="$SCR/fixtures"; mkdir -p "$FX"

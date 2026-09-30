@@ -42,7 +42,7 @@ await detail.locator('.comment', { hasText: 'Congrats Maya!' }).waitFor();
 expect(true, 'guest: full comment thread shown without clicking');
 expect((await detail.locator('.action.like').innerText()).trim() === '1', 'guest: like count shown (1)');
 expect(await detail.getByRole('button', { name: 'Log in to reply' }).isVisible(), 'guest: reply replaced by "Log in to reply"');
-expect((await detail.locator('.action.danger').count()) === 0, 'guest: no delete button');
+expect((await detail.getByRole('button', { name: 'More options' }).count()) === 0 && (await detail.getByText('Delete post').count()) === 0, 'guest: no delete control (no ⋯ menu)');
 expect((await g.locator('.post-detail a.post-time').count()) === 0, 'detail view: timestamp is not a self-link');
 await g.screenshot({ path: `${OUT}/p1-post-guest.png` });
 
@@ -115,7 +115,8 @@ await m.goto(`${APP}/u/ezekiel`);
 await m.locator('.post', { hasText: 'Temporary post' }).locator('a.post-time').click();
 await m.waitForURL(`${APP}/post/${mine.id}`);
 m.once('dialog', (dlg) => dlg.accept());
-await m.locator('.post-detail').getByLabel('Delete post').click();
+await m.locator('.post-detail').getByRole('button', { name: 'More options' }).click();
+await m.getByRole('menuitem', { name: 'Delete post' }).click();
 await m.waitForURL(`${APP}/u/ezekiel`);
 // navigate() changes the URL before React renders the new route; wait for the profile.
 await m.locator('.profile-info').waitFor();
