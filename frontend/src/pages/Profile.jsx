@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import usePostList from '../hooks/usePostList.js';
@@ -199,7 +199,11 @@ export default function Profile() {
             <Avatar user={profileUser} size={112} />
           </div>
           {isSelf ? (
-            <button className="btn btn-outline" onClick={() => setEditing(true)}>Edit profile</button>
+            <div className="profile-actions">
+              {/* Also the way to Saved on phones, where the sidebar's More menu isn't shown. */}
+              <Link to="/saved" className="btn btn-outline">Saved</Link>
+              <button className="btn btn-outline" onClick={() => setEditing(true)}>Edit profile</button>
+            </div>
           ) : (
             <FollowButton
               size="md"

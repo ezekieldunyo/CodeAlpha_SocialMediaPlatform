@@ -95,6 +95,8 @@ export const api = {
   deleteComment: (id) => request('comments/delete.php', { method: 'DELETE', query: { id } }),
 
   toggleLike: (postId) => request('likes/toggle.php', { method: 'POST', body: { post_id: postId } }),
+  toggleBookmark: (postId) => request('bookmarks/toggle.php', { method: 'POST', body: { post_id: postId } }),
+  listBookmarks: (page) => request('bookmarks/list.php', { query: { page } }),
   toggleFollow: (userId) => request('follow/toggle.php', { method: 'POST', body: { user_id: userId } }),
   listFollowers: (userId, type = 'followers') =>
     request('follow/followers.php', { query: { user_id: userId, type } }),

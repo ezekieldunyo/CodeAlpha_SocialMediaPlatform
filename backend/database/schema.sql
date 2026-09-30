@@ -37,6 +37,20 @@ CREATE TABLE IF NOT EXISTS comments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Saved posts. One bookmark per user per post (UNIQUE), removed with the
+-- user or the post.
+CREATE TABLE IF NOT EXISTS bookmarks (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT UNSIGNED NOT NULL,
+    post_id    INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_bookmark (user_id, post_id),
+    INDEX idx_bookmarks_user_created (user_id, created_at),
+    INDEX idx_bookmarks_post (post_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Composite primary keys make "one like per user per post" and
 -- "follow someone once" database guarantees, not just app logic.
 CREATE TABLE IF NOT EXISTS likes (

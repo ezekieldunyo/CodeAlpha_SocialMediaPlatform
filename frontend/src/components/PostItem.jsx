@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -6,16 +6,46 @@ import useRequireAuth from '../hooks/useRequireAuth.js';
 import { parseTimestamp, timeAgo } from '../utils/time.js';
 import Avatar from './Avatar.jsx';
 import CommentThread from './CommentThread.jsx';
-import { CommentIcon, HeartIcon, TrashIcon } from './Icons.jsx';
+import { BookmarkIcon, CommentIcon, HeartIcon, ShareIcon } from './Icons.jsx';
+import PostMenu from './PostMenu.jsx';
 
 // `detail` is the /post/:id page: thread open from the start, and the
 // content/timestamp aren't links to the page you're already on.
+// Clipboard API where available; the textarea fallback covers browsers or
+// pages (e.g. plain http on another host) where it isn't.
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+}
+
 export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
   const { user } = useAuth();
   const requireAuth = useRequireAuth();
   const navigate = useNavigate();
   const [showThread, setShowThread] = useState(detail);
   const [likeBusy, setLikeBusy] = useState(false);
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef(0);
+  useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
   // Set only by a click, so already-liked posts don't animate on load.
   const [pop, setPop] = useState(false);
   const [error, setError] = useState('');
@@ -52,6 +82,37 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
     }
   }
 
+  // Optimistic bookmark, same pattern as likes. Guests are sent to log in.
+  async function toggleBookmark() {
+    if (!requireAuth('Log in to save posts.') || bookmarkBusy) return;
+    setBookmarkBusy(true);
+    setError('');
+    const before = post.bookmarked_by_viewer;
+    onUpdate(post.id, { bookmarked_by_viewer: !before });
+    try {
+      const { bookmarked } = await api.toggleBookmark(post.id);
+      onUpdate(post.id, { bookmarked_by_viewer: bookmarked });
+    } catch (err) {
+      onUpdate(post.id, { bookmarked_by_viewer: before });
+      setError(err.message);
+    } finally {
+      setBookmarkBusy(false);
+    }
+  }
+
+  // Copies the link to the public /post/:id page. Works for guests too.
+  async function share() {
+    const url = new URL(postPath, window.location.origin).href;
+    setError('');
+    if (await copyText(url)) {
+      setCopied(true);
+      window.clearTimeout(copiedTimer.current);
+      copiedTimer.current = window.setTimeout(() => setCopied(false), 2000);
+    } else {
+      setError(`Couldn't copy the link. Here it is: ${url}`);
+    }
+  }
+
   async function remove() {
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
     try {
@@ -83,6 +144,8 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
               </time>
             </Link>
           )}
+          {/* Author only: nobody else gets a delete control, whatever the API allows. */}
+          {isOwn && <PostMenu onDelete={remove} />}
         </div>
 
         <p className={`post-text ${detail ? '' : 'is-link'}`} onClick={openPost}>{post.content}</p>
@@ -100,6 +163,9 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
             <CommentIcon size={18} />
             <span>{post.comment_count || ''}</span>
           </button>
+          <button className={`action share ${copied ? 'is-active' : ''}`} onClick={share} aria-label="Copy link to post">
+            <ShareIcon size={18} />
+          </button>
           <button
             className={`action like ${post.liked_by_viewer ? 'is-liked' : ''} ${pop ? 'pop' : ''}`}
             onClick={toggleLike}
@@ -110,12 +176,16 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
             <HeartIcon size={18} fill={post.liked_by_viewer ? 'url(#wl-grad)' : 'none'} stroke={post.liked_by_viewer ? 'url(#wl-grad)' : 'currentColor'} />
             <span>{post.like_count || ''}</span>
           </button>
-          {isOwn && (
-            <button className="action danger push-right" onClick={remove} aria-label="Delete post">
-              <TrashIcon size={18} />
-            </button>
-          )}
+          <button
+            className={`action bookmark ${post.bookmarked_by_viewer ? 'is-saved' : ''}`}
+            onClick={toggleBookmark}
+            aria-pressed={Boolean(post.bookmarked_by_viewer)}
+            aria-label={post.bookmarked_by_viewer ? 'Remove from saved' : 'Save post'}
+          >
+            <BookmarkIcon size={18} filled={Boolean(post.bookmarked_by_viewer)} />
+          </button>
         </div>
+        <p className="copied-note" role="status" aria-live="polite">{copied ? 'Link copied' : ''}</p>
         {error && <p className="form-error">{error}</p>}
 
         {showThread && (

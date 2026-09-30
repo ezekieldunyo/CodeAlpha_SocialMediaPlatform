@@ -64,6 +64,17 @@ export const BackIcon = (p) => (
 export const CalendarIcon = (p) => (
   <Icon {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></Icon>
 );
+export const ShareIcon = (p) => (
+  <Icon {...p}><path d="M12 15V3M7 8l5-5 5 5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></Icon>
+);
+// Pass filled to show the saved state.
+export const BookmarkIcon = (p) => (
+  <Icon {...p}><path d="M6 3h12v18l-6-4.5L6 21z" /></Icon>
+);
+// Horizontal "⋯" for per-post options.
+export const DotsIcon = (p) => (
+  <Icon {...p} fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></Icon>
+);
 
 // Shared gradient. wl-grad is in user space (0-24) so it also paints thin,
 // straight strokes on the 24px icons — objectBoundingBox would collapse there.

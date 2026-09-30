@@ -8,6 +8,7 @@ import Logo from './Logo.jsx';
 import RightRail from './RightRail.jsx';
 import {
   BellIcon,
+  BookmarkIcon,
   ExploreIcon,
   FeatherIcon,
   GradientDefs,
@@ -66,6 +67,9 @@ function MoreMenu() {
         <div className="menu" role="menu">
           <Link to={`/u/${user.username}`} className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
             <UserIcon size={18} /> View profile
+          </Link>
+          <Link to="/saved" className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
+            <BookmarkIcon size={18} /> Saved
           </Link>
           <button className="menu-item" role="menuitem" onClick={logOut}>
             <LogoutIcon size={18} /> Log out @{user.username}

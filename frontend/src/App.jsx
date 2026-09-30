@@ -7,6 +7,7 @@ import Feed from './pages/Feed.jsx';
 import Explore from './pages/Explore.jsx';
 import Profile from './pages/Profile.jsx';
 import PostPage from './pages/PostPage.jsx';
+import Saved from './pages/Saved.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 
 // Pages that only make sense for a signed-in user (the home feed is "people
@@ -38,6 +39,7 @@ export default function App() {
         {/* Home: "For you" is public; the "Following" tab asks guests to log in. */}
         <Route index element={<Feed />} />
         <Route path="explore" element={<RequireAuth><Explore /></RequireAuth>} />
+        <Route path="saved" element={<RequireAuth><Saved /></RequireAuth>} />
         <Route path="notifications" element={<RequireAuth><ComingSoon title="Notifications" /></RequireAuth>} />
         <Route path="messages" element={<RequireAuth><ComingSoon title="Messages" /></RequireAuth>} />
       </Route>

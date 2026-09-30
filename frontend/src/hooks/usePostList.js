@@ -16,7 +16,10 @@ export default function usePostList({ feed, userId, enabled = true }) {
       setLoading(true);
       setError('');
       try {
-        const data = await api.listPosts({ feed, userId, page: nextPage });
+        // feed 'saved' is the viewer's bookmarks; the rest come from posts/list.php.
+        const data = feed === 'saved'
+          ? await api.listBookmarks(nextPage)
+          : await api.listPosts({ feed, userId, page: nextPage });
         if (key !== requestKey.current) return;
         setPosts((current) => {
           if (nextPage === 1) return data.posts;

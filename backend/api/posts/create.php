@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../config/cors.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/posts.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonError(405, 'Method not allowed.');
@@ -33,29 +34,8 @@ $postId = (int) $pdo->lastInsertId();
 
 // Return the post joined with author info, same shape the feed uses,
 // so the frontend can just prepend this to its post list.
-$stmt = $pdo->prepare(
-    'SELECT p.id, p.content, p.image_url, p.created_at,
-            u.id AS user_id, u.username, u.display_name, u.avatar_url
-     FROM posts p JOIN users u ON u.id = p.user_id
-     WHERE p.id = ?'
-);
+$stmt = $pdo->prepare(POST_SELECT . ' WHERE p.id = ?');
 $stmt->execute([$postId]);
-$row = $stmt->fetch();
 
-jsonResponse(201, [
-    'post' => [
-        'id' => (int) $row['id'],
-        'content' => $row['content'],
-        'image_url' => $row['image_url'],
-        'created_at' => $row['created_at'],
-        'like_count' => 0,
-        'comment_count' => 0,
-        'liked_by_viewer' => false,
-        'author' => [
-            'id' => (int) $row['user_id'],
-            'username' => $row['username'],
-            'display_name' => $row['display_name'],
-            'avatar_url' => $row['avatar_url'],
-        ],
-    ],
-]);
+// A brand-new post has no likes or bookmarks yet.
+jsonResponse(201, ['post' => formatPost($stmt->fetch())]);

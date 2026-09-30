@@ -1320,3 +1320,60 @@ textarea.input {
   font-size: 14px;
   font-weight: 500;
 }
+
+/* ---------- Post options ("⋯"), share, bookmarks ---------- */
+.post-menu {
+  position: relative;
+  margin-left: auto;
+  align-self: flex-start;
+}
+.post-menu-btn {
+  width: 30px;
+  height: 30px;
+  margin: -4px -6px 0 0;
+}
+/* Opens below the button, aligned right (the sidebar's More menu opens upward). */
+.menu.post-menu-list {
+  left: auto;
+  right: 0;
+  bottom: auto;
+  top: calc(100% + 4px);
+  min-width: 180px;
+  z-index: 20;
+}
+.menu-item.danger {
+  color: var(--danger);
+}
+.menu-item.danger:hover {
+  background: var(--danger-soft);
+}
+.action.bookmark {
+  min-width: 0;
+}
+.action.bookmark:hover,
+.action.bookmark.is-saved {
+  color: var(--blue);
+  background: rgba(37, 99, 235, 0.1);
+}
+.action.bookmark.is-saved {
+  background: none;
+}
+.action.share {
+  min-width: 0;
+}
+.copied-note {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--blue);
+}
+.copied-note:empty {
+  display: none;
+}
+.profile-actions {
+  display: flex;
+  gap: 8px;
+}
+.profile-actions a.btn:hover {
+  text-decoration: none;
+}
