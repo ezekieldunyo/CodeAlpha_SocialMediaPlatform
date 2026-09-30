@@ -6,7 +6,7 @@ import useRequireAuth from '../hooks/useRequireAuth.js';
 import { parseTimestamp, timeAgo } from '../utils/time.js';
 import Avatar from './Avatar.jsx';
 import CommentThread from './CommentThread.jsx';
-import { BookmarkIcon, CommentIcon, HeartIcon, ShareIcon } from './Icons.jsx';
+import { BookmarkIcon, CommentIcon, HeartIcon, RepostIcon, ShareIcon } from './Icons.jsx';
 import PostMenu from './PostMenu.jsx';
 
 // `detail` is the /post/:id page: thread open from the start, and the
@@ -43,6 +43,7 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
   const [showThread, setShowThread] = useState(detail);
   const [likeBusy, setLikeBusy] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
+  const [repostBusy, setRepostBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef(0);
   useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
@@ -52,6 +53,9 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
   const { author } = post;
   const isOwn = author.id === user?.id;
   const postPath = `/post/${post.id}`;
+  // In a feed, a post shown because someone reposted it. A post opened on its
+  // own page is just the original.
+  const reposter = detail ? null : post.reposted_by;
 
   // Clicking the text/image opens the post, unless the reader is selecting
   // text. The timestamp is the real <Link> for keyboard and screen readers.
@@ -100,6 +104,27 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
     }
   }
 
+  // Optimistic repost toggle, same pattern as likes. Guests are sent to log in.
+  async function toggleRepost() {
+    if (!requireAuth('Log in to repost.') || repostBusy) return;
+    setRepostBusy(true);
+    setError('');
+    const before = { reposted_by_viewer: post.reposted_by_viewer, repost_count: post.repost_count };
+    onUpdate(post.id, {
+      reposted_by_viewer: !before.reposted_by_viewer,
+      repost_count: before.repost_count + (before.reposted_by_viewer ? -1 : 1),
+    });
+    try {
+      const { reposted, repost_count } = await api.toggleRepost(post.id);
+      onUpdate(post.id, { reposted_by_viewer: reposted, repost_count });
+    } catch (err) {
+      onUpdate(post.id, before);
+      setError(err.message);
+    } finally {
+      setRepostBusy(false);
+    }
+  }
+
   // Copies the link to the public /post/:id page. Works for guests too.
   async function share() {
     const url = new URL(postPath, window.location.origin).href;
@@ -124,7 +149,15 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
   }
 
   return (
-    <article className={`post ${detail ? 'post-detail' : ''}`}>
+    <article className={`post ${detail ? 'post-detail' : ''} ${reposter ? 'has-repost-label' : ''}`}>
+      {reposter && (
+        <div className="repost-label">
+          <span className="repost-label-icon"><RepostIcon size={15} strokeWidth={2.2} /></span>
+          <Link to={`/u/${reposter.username}`}>
+            {reposter.id === user?.id ? 'You' : reposter.display_name} reposted
+          </Link>
+        </div>
+      )}
       <Link to={`/u/${author.username}`} className="post-avatar">
         <Avatar user={author} size={40} />
       </Link>
@@ -163,8 +196,14 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
             <CommentIcon size={18} />
             <span>{post.comment_count || ''}</span>
           </button>
-          <button className={`action share ${copied ? 'is-active' : ''}`} onClick={share} aria-label="Copy link to post">
-            <ShareIcon size={18} />
+          <button
+            className={`action repost ${post.reposted_by_viewer ? 'is-reposted' : ''}`}
+            onClick={toggleRepost}
+            aria-pressed={Boolean(post.reposted_by_viewer)}
+            aria-label={`${post.reposted_by_viewer ? 'Undo repost' : 'Repost'} (${post.repost_count})`}
+          >
+            <RepostIcon size={18} strokeWidth={post.reposted_by_viewer ? 2.4 : 1.8} />
+            <span>{post.repost_count || ''}</span>
           </button>
           <button
             className={`action like ${post.liked_by_viewer ? 'is-liked' : ''} ${pop ? 'pop' : ''}`}
@@ -183,6 +222,9 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
             aria-label={post.bookmarked_by_viewer ? 'Remove from saved' : 'Save post'}
           >
             <BookmarkIcon size={18} filled={Boolean(post.bookmarked_by_viewer)} />
+          </button>
+          <button className={`action share ${copied ? 'is-active' : ''}`} onClick={share} aria-label="Copy link to post">
+            <ShareIcon size={18} />
           </button>
         </div>
         <p className="copied-note" role="status" aria-live="polite">{copied ? 'Link copied' : ''}</p>

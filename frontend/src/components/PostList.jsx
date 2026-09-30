@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { feedKey } from '../hooks/usePostList.js';
 import PostItem from './PostItem.jsx';
 
 // Renders a usePostList() result and loads the next page when the sentinel
@@ -21,7 +22,7 @@ export default function PostList({ list, empty }) {
   return (
     <div className="post-list">
       {posts.map((post) => (
-        <PostItem key={post.id} post={post} onUpdate={update} onRemove={remove} />
+        <PostItem key={feedKey(post)} post={post} onUpdate={update} onRemove={remove} />
       ))}
 
       {!loading && !error && posts.length === 0 && <div className="empty">{empty}</div>}

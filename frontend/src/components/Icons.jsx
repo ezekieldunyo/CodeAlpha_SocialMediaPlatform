@@ -72,6 +72,10 @@ export const CalendarIcon = (p) => (
 export const ShareIcon = (p) => (
   <Icon {...p}><path d="M12 15V3M7 8l5-5 5 5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></Icon>
 );
+// Two arrows chasing each other round a loop, like X's repost.
+export const RepostIcon = (p) => (
+  <Icon {...p}><path d="M4 11V9a3 3 0 0 1 3-3h12" /><path d="m16 3 3 3-3 3" /><path d="M20 13v2a3 3 0 0 1-3 3H5" /><path d="m8 21-3-3 3-3" /></Icon>
+);
 // Pass filled to show the saved state.
 export const BookmarkIcon = (p) => (
   <Icon {...p}><path d="M6 3h12v18l-6-4.5L6 21z" /></Icon>

@@ -51,6 +51,22 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Reposts. One per user per post (UNIQUE), removed with the user or the post.
+-- A repost puts the post in the reposter's followers' home feeds and in
+-- "For you", ordered by the repost's created_at.
+CREATE TABLE IF NOT EXISTS reposts (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT UNSIGNED NOT NULL,
+    post_id    INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_repost (user_id, post_id),
+    INDEX idx_reposts_user_created (user_id, created_at),
+    INDEX idx_reposts_created (created_at),
+    INDEX idx_reposts_post (post_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Composite primary keys make "one like per user per post" and
 -- "follow someone once" database guarantees, not just app logic.
 CREATE TABLE IF NOT EXISTS likes (

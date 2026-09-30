@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 
+// A feed can show the same post more than once: as the original and as
+// reposts by different people. This identifies one feed entry.
+export const feedKey = (post) => (post.reposted_by ? `r${post.reposted_by.id}-${post.id}` : `p${post.id}`);
+
 // Paged loader for posts/list.php. Resets whenever feed/userId change, and
 // ignores responses from a previous feed that arrive late.
 export default function usePostList({ feed, userId, enabled = true }) {
@@ -24,8 +28,8 @@ export default function usePostList({ feed, userId, enabled = true }) {
         setPosts((current) => {
           if (nextPage === 1) return data.posts;
           // Skip anything already shown (e.g. a post we just created shifted the pages).
-          const seen = new Set(current.map((p) => p.id));
-          return [...current, ...data.posts.filter((p) => !seen.has(p.id))];
+          const seen = new Set(current.map(feedKey));
+          return [...current, ...data.posts.filter((p) => !seen.has(feedKey(p)))];
         });
         setHasMore(data.has_more);
         setPage(nextPage);
@@ -57,6 +61,7 @@ export default function usePostList({ feed, userId, enabled = true }) {
   const prepend = useCallback((post) => {
     if (post?.id) setPosts((current) => [post, ...current]);
   }, []);
+  // update and remove apply to every entry for the post, reposts included.
   const update = useCallback(
     (id, changes) => setPosts((current) => current.map((p) => (p.id === id ? { ...p, ...changes } : p))),
     []

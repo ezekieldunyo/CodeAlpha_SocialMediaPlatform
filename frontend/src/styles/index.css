@@ -13,6 +13,7 @@
 
   --teal: #2dd4bf;
   --blue: #2563eb;
+  --repost: #0f766e; /* teal dark enough for text on white */
   --gradient-brand: linear-gradient(135deg, #2dd4bf, #2563eb);
   --on-gradient: #06121f;
 
@@ -48,6 +49,7 @@
     --line: #223349;
     --hover: #16283f;
     --danger-soft: rgba(225, 29, 72, 0.18);
+    --repost: var(--teal);
     --backdrop: rgba(0, 0, 0, 0.6);
     color-scheme: dark;
   }
@@ -60,6 +62,7 @@
   --line: #223349;
   --hover: #16283f;
   --danger-soft: rgba(225, 29, 72, 0.18);
+  --repost: var(--teal);
   --backdrop: rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
@@ -782,6 +785,44 @@ textarea.input {
   .action.like.pop svg {
     animation: none;
   }
+}
+.action.repost:hover,
+.action.repost.is-reposted {
+  color: var(--repost);
+  background: rgba(45, 212, 191, 0.14);
+}
+.action.repost.is-reposted {
+  background: none;
+  font-weight: 600;
+}
+
+/* "Maya reposted" above a post shown because of a repost, like X: the icon
+   sits right-aligned in the avatar column, the text lines up with the name. */
+.post.has-repost-label {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.repost-label {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.repost-label-icon {
+  flex: 0 0 40px;
+  display: flex;
+  justify-content: flex-end;
+}
+.repost-label a {
+  min-width: 0;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .action.danger {
   min-width: 0;
