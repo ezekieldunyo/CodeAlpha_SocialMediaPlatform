@@ -25,6 +25,13 @@ async function request(path, { method = 'GET', body, query } = {}) {
     });
   }
 
+  // PUT and DELETE travel as POST + ?_method=…: some shared hosts only let
+  // GET and POST through. The API treats them as the real method.
+  if (method === 'PUT' || method === 'DELETE') {
+    url.searchParams.set('_method', method);
+    method = 'POST';
+  }
+
   const headers = {};
   const token = tokenStore.get();
   if (token) headers.Authorization = `Bearer ${token}`;

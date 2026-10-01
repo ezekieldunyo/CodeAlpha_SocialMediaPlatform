@@ -155,6 +155,25 @@ try {
   expect((await countMine(text)) === 1 && (await feedCount(text)) === 1, 'once fixed, retrying posts it exactly once (with the photo)');
 } catch (e) { failed++; console.log(`✗ missing-table replay: stopped early: ${firstLine(e)}`); try { faultInject('restore-reposts'); } catch { /* already there */ } }
 
+// ---------- Post times are right in any time zone ----------
+// The API sends UTC; the app converts. A post made seconds ago must read
+// "now" for visitors on both sides of the world, not "13h" or a future time.
+try {
+  const text = `Time zone check ${tag}`;
+  await fetch(`${API}/posts/create.php`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${me.token}` }, body: JSON.stringify({ content: text }) });
+  for (const timezoneId of ['Pacific/Auckland', 'America/Los_Angeles', 'Africa/Accra']) {
+    const zoned = await browser.newContext({ viewport: { width: 1400, height: 900 }, timezoneId });
+    const p = await zoned.newPage();
+    await p.goto(`${APP}/`);
+    const time = p.locator('.center .post', { hasText: text }).locator('.post-time time');
+    await time.waitFor({ timeout: 5000 });
+    const shown = await time.innerText();
+    const iso = await time.getAttribute('datetime');
+    expect(shown === 'now' && Math.abs(Date.now() - Date.parse(iso)) < 120000, `${timezoneId}: a fresh post reads "${shown}" (datetime ${iso})`);
+    await zoned.close();
+  }
+} catch (e) { failed++; console.log(`✗ time zones: stopped early: ${firstLine(e)}`); }
+
 expect(errors.length === 0, `no page errors${errors.length ? ': ' + errors.join(' | ') : ''}`);
 await browser.close();
 console.log(failed ? `== ${failed} FAILED` : '== all composer checks passed');

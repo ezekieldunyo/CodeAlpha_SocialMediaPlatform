@@ -1,7 +1,8 @@
-// The API returns MySQL timestamps like "2026-09-27 14:03:11" (server local
-// time, no zone). Swapping the space for "T" makes Date parse it as local.
+// The API returns MySQL timestamps like "2026-09-27 14:03:11", always in UTC
+// (see backend/config/database.php), wherever the server is. "T" and "Z" make
+// Date read it as UTC; everything shown is then in the visitor's own time.
 export function parseTimestamp(value) {
-  return new Date(String(value).replace(' ', 'T'));
+  return new Date(`${String(value).replace(' ', 'T')}Z`);
 }
 
 export function timeAgo(value) {

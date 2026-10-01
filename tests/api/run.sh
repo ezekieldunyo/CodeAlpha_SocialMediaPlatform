@@ -459,6 +459,21 @@ check "after the migration, tokens work again" 201 "$CODE" "$BODY" 'olga after m
 req POST posts/create.php "$TO" "{\"content\":\"olga after migrating\",\"client_token\":\"$T4\"}"
 check "after the migration, a retry returns the same post" 200 "$CODE" "$BODY" 'olga after migrating'
 
+# --- PUT / DELETE sent as POST + ?_method= (hosts that only allow GET and POST)
+req POST "users/update_profile.php?_method=PUT" "$TO" '{"bio":"edited over POST"}'
+check "POST ?_method=PUT updates the profile" 200 "$CODE" "$BODY" 'edited over POST'
+req POST users/update_profile.php "$TO" '{"bio":"no override"}'
+check "plain POST to a PUT endpoint -> 405" 405 "$CODE" "$BODY"
+req POST posts/create.php "$TO" '{"content":"olga, delete me over POST"}'; DELID=$(echo "$BODY" | sed 's/.*"post":{"id":\([0-9]*\).*/\1/')
+req GET "posts/delete.php?id=$DELID&_method=DELETE" "$TO"
+check "GET ?_method=DELETE is not accepted -> 405" 405 "$CODE" "$BODY"
+req POST "posts/delete.php?id=$DELID&_method=DELETE" "$TR"
+check "POST ?_method=DELETE still checks ownership -> 403" 403 "$CODE" "$BODY"
+req POST "posts/delete.php?id=$DELID&_method=DELETE" "$TO"
+check "POST ?_method=DELETE deletes the post" 200 "$CODE" "$BODY" '"deleted":true'
+req GET "posts/get.php?id=$DELID"
+check "...and it is gone" 404 "$CODE" "$BODY"
+
 # --- image uploads: posts/upload_image.php and users/upload_avatar.php
 FX="$SCR/fixtures"; mkdir -p "$FX"
 "$PHP" "$(dirname "$0")/make-fixtures.php" "$FX" > /dev/null || { echo "FAIL  could not generate upload fixtures"; fail=$((fail+1)); }

@@ -167,12 +167,12 @@ export default function PostItem({ post, onUpdate, onRemove, detail = false }) {
           <span className="muted truncate">@{author.username}</span>
           <span className="muted">·</span>
           {detail ? (
-            <time className="muted" dateTime={post.created_at}>
+            <time className="muted" dateTime={parseTimestamp(post.created_at).toISOString()}>
               {parseTimestamp(post.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
             </time>
           ) : (
             <Link to={postPath} className="post-time muted">
-              <time dateTime={post.created_at} title={parseTimestamp(post.created_at).toLocaleString()}>
+              <time dateTime={parseTimestamp(post.created_at).toISOString()} title={parseTimestamp(post.created_at).toLocaleString()}>
                 {timeAgo(post.created_at)}
               </time>
             </Link>

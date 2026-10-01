@@ -19,6 +19,9 @@ function getDbConnection(): PDO {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
+                // created_at values come back in UTC wherever the database server
+                // is, so the frontend can show them in each visitor's own time.
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone = '+00:00'",
             ]);
         } catch (PDOException $e) {
             error_log('DB connection failed: ' . $e->getMessage());

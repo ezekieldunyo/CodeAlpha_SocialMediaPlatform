@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+if (requestMethod() !== 'PUT') {
     jsonError(405, 'Method not allowed.');
 }
 

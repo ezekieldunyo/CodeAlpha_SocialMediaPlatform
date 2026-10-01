@@ -47,6 +47,15 @@ function jsonError(int $status, string $message): void {
     jsonResponse($status, ['error' => $message]);
 }
 
+// The request's method, also accepting POST with ?_method=PUT or ?_method=DELETE.
+// Some shared hosts only let GET and POST through, so the frontend sends those
+// two as POST; real PUT / DELETE requests keep working too.
+function requestMethod(): string {
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    $override = strtoupper((string) ($_GET['_method'] ?? ''));
+    return $method === 'POST' && in_array($override, ['PUT', 'DELETE'], true) ? $override : $method;
+}
+
 // Reads and decodes the JSON request body. Returns [] if empty/invalid.
 function getJsonBody(): array {
     $raw = file_get_contents('php://input');
