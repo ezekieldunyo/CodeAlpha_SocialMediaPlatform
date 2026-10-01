@@ -5,3 +5,6 @@ backend/config/local.php
 backend/uploads/
 tests/e2e/screenshots/
 backend/uploads-test/
+# Deploy: the generated upload folder and the live credentials are never committed.
+deploy/out/
+deploy/local.production.php

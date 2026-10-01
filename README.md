@@ -42,6 +42,7 @@ CodeAlpha_SocialMediaPlatform/
 │       ├── context/     # AuthContext (JWT + current user in localStorage)
 │       ├── components/  # Layout (3-column shell), PostItem, CommentThread, …
 │       └── pages/       # Login, Register, Feed, Profile, PostPage, Explore
+├── deploy/              # build.mjs (assembles the upload folder), live settings template
 ├── mockups/feed-mockup.html
 ├── tests/               # API (curl) + browser suites, see "Tests" below
 ├── README.md
@@ -99,6 +100,55 @@ is needed. To point the frontend at a backend elsewhere (e.g. Herd, XAMPP or Apa
 `VITE_API_URL` in `frontend/.env` (see `.env.example`) and add the frontend's origin to
 `CORS_ORIGINS` in `local.php`.
 
+## Deploying (InfinityFree or any shared PHP + MySQL host)
+
+The React app and the PHP API go on **one site**: the built app at the web root, the API
+in the `api/` folder beside it. (InfinityFree's free plan blocks API calls coming from a
+different domain, and one origin needs no CORS setup.)
+
+1. **Live settings.** Copy `deploy/local.production.example.php` to
+   `deploy/local.production.php` and fill in the database host, name, user and password,
+   a long random `JWT_SECRET`, and the site's address. That file is gitignored.
+2. **Build.** From the repo root:
+
+   ```bash
+   node deploy/build.mjs
+   ```
+
+   It runs `npm run build` and assembles `deploy/out/` (gitignored):
+   - `deploy/out/htdocs/`: the built app, `api/`, `includes/`, `config/` (with your live
+     settings as `config/local.php`), empty `uploads/` folders and the `.htaccess` files.
+   - `deploy/out/database.sql`: the tables, for phpMyAdmin.
+
+   It stops with a list if the settings still hold placeholders or the app still points
+   at a development backend.
+3. **Database.** Create a database in the host's control panel, open it in phpMyAdmin
+   and import `deploy/out/database.sql` once.
+4. **Upload** the *contents* of `deploy/out/htdocs/` into the site's `htdocs/` folder
+   (FTP client or the File Manager), including the `.htaccess` files.
+5. **Check it**, through a real browser (register, post, photo upload, like, comment,
+   profile edit, refresh, delete, log back in):
+
+   ```bash
+   node tests/e2e/live.mjs https://your-site.example.com
+   ```
+
+   It leaves one clearly named test account (`wl_check_…`) behind, with no posts.
+
+**The API URL** is `VITE_API_URL` in `frontend/.env.production`, fixed into the app at build
+time. It is `/api` (same site), so the build doesn't depend on the domain; change it to a
+full URL only if the API is hosted elsewhere, and then add the app's origin to
+`CORS_ORIGINS`. Local development uses `frontend/.env` instead.
+
+Three things in the code exist for hosts like this: profile edits and deletes are sent as
+`POST …?_method=PUT|DELETE` (some hosts only allow GET and POST), timestamps are always
+UTC from the API and shown in the visitor's own time, and `backend/.htaccess` sends page
+addresses such as `/u/maya` to the app, passes the login header to PHP and blocks
+`config/` and `includes/`.
+
+To update the live site later: rebuild, then re-upload everything **except** `uploads/`
+(that folder holds people's photos on the server).
+
 ## API
 
 All responses are JSON. Errors are always `{ "error": "message" }` with a matching HTTP status
@@ -106,6 +156,9 @@ All responses are JSON. Errors are always `{ "error": "message" }` with a matchi
 413 upload too large, 415 not a supported image, 500 server). Authenticated endpoints expect `Authorization: Bearer <token>`;
 they return 401 if the token is invalid or expired, **or if its account no longer exists**. Server
 errors are always JSON too, never an HTML error page.
+
+`PUT` and `DELETE` endpoints also accept `POST` with `?_method=PUT` or `?_method=DELETE`,
+which is what the app sends. `created_at` values are UTC (`YYYY-MM-DD HH:MM:SS`).
 
 Every post in a response has the same shape: `{ id, content, image_url, created_at,
 like_count, comment_count, repost_count, liked_by_viewer, bookmarked_by_viewer,

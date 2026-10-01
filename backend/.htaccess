@@ -1,0 +1,21 @@
+# Apache settings for the deployed site (InfinityFree and other shared hosts),
+# where the built React app and this folder's contents share one web root.
+# Laravel Herd (nginx) and `php -S` ignore this file.
+
+Options -Indexes
+
+RewriteEngine On
+
+# Make sure PHP receives the "Authorization: Bearer <token>" header.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Code and settings that should never be requested directly.
+RewriteRule ^(config|includes|database)(/|$) - [F,L]
+
+# Single-page app: any address that isn't a real file or folder (for example
+# /u/maya or /post/12) loads index.html, and React Router shows the page.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/(api|uploads)/
+RewriteRule ^ index.html [L]
